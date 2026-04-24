@@ -1,19 +1,27 @@
-// profile.js
-import { loadUserDataFromCloud } from './firebase-sync.js';
-import { auth } from './firebase-sync.js';
-import { onAuthStateChanged } from './firebase-sync.js';
-
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        const data = await loadUserDataFromCloud(user.uid);
-        if (data) {
-            // Обновляем интерфейс профиля данными из БД
-            document.getElementById('profileName').textContent = user.email.split('@')[0];
-            document.getElementById('profileLevel').textContent = data.level || 1;
-            document.getElementById('profileScore').textContent = data.score || 0;
-            document.getElementById('solvedCount').textContent = (data.solvedTaskIds || []).length;
-        }
-    } else {
+export function initProfilePage(currentUser) {
+    if (!currentUser) {
         window.location.href = 'auth.html';
+        return;
     }
-});
+
+    const emailEl = document.getElementById('profileEmail');
+    const rankEl = document.getElementById('profileRank');
+    const solvedEl = document.getElementById('profileSolved');
+    const accEl = document.getElementById('profileAccuracy');
+    const scoreEl = document.getElementById('profileScore');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    if (emailEl) emailEl.textContent = currentUser.email;
+    if (rankEl) rankEl.textContent = currentUser.rank;
+    if (solvedEl) solvedEl.textContent = currentUser.solved.toString();
+    const acc = currentUser.totalAnswered > 0
+        ? Math.round((currentUser.solved / currentUser.totalAnswered) * 100)
+        : 0;
+    if (accEl) accEl.textContent = acc + '%';
+    if (scoreEl) scoreEl.textContent = currentUser.score.toString();
+
+    logoutBtn?.addEventListener('click', () => {
+        localStorage.removeItem('qmath_current_user');
+        window.location.href = 'auth.html';
+    });
+}
