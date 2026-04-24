@@ -1,315 +1,275 @@
-import { tasksMath, tasksMathLoaded, tasksPhys, tasksPhysLoaded } from './tasks.js';
-import { saveUserToDB, getUsersFromDB } from './storage.js';
+// game.js - Основная логика игры с интеграцией Firebase
 
-async function updateUserInDB(email, newData) {
-    const users = await getUsersFromDB();
-    const user = users[email];
-    if (!user) throw new Error('User not found');
-    const updated = { ...user, ...newData };
-    await saveUserToDB({ email, ...updated });
-    return { email, ...updated };
+import { auth, db, saveUserToCloud, loadUserDataFromCloud } from './firebase-sync.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// --- Состояние игры ---
+let currentUser = null;
+let gameState = {
+    level: 1,
+    score: 0,
+    experience: 0,
+    solvedTaskIds: [], // Массив ID решенных задач
+    statistics: {
+        totalSolved: 0,
+        streak: 0,
+        bestStreak: 0,
+        accuracy: 100,
+        correctAnswers: 0,
+        totalAttempts: 0
+    }
+};
+
+let currentTask = null;
+let isProcessing = false;
+
+// --- Элементы DOM ---
+const ui = {
+    level: document.getElementById('user-level'),
+    score: document.getElementById('user-score'),
+    expBar: document.getElementById('exp-bar-fill'),
+    expText: document.getElementById('exp-text'),
+    taskContainer: document.getElementById('task-container'),
+    taskText: document.getElementById('task-text'),
+    answerInput: document.getElementById('answer-input'),
+    submitBtn: document.getElementById('submit-btn'),
+    feedback: document.getElementById('feedback-msg'),
+    statsTotal: document.getElementById('stats-total'),
+    statsStreak: document.getElementById('stats-streak'),
+    statsAccuracy: document.getElementById('stats-accuracy')
+};
+
+// --- Инициализация ---
+document.addEventListener('DOMContentLoaded', () => {
+    checkAuth();
+    
+    // Обработчики событий
+    if (ui.submitBtn) {
+        ui.submitBtn.addEventListener('click', handleSubmission);
+    }
+    if (ui.answerInput) {
+        ui.answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSubmission();
+        });
+    }
+});
+
+// --- Проверка авторизации ---
+function checkAuth() {
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUser = user;
+            console.log("Пользователь авторизован:", user.email);
+            
+            // Загружаем данные из облака или создаем новые
+            await loadProgress();
+            
+            // Запускаем игру
+            updateUI();
+            generateTask();
+        } else {
+            console.warn("Пользователь не авторизован. Перенаправление...");
+            // Если открыли game.html без входа, кидаем на auth
+            window.location.href = 'auth.html';
+        }
+    });
 }
 
-function getRank(score) {
-    if (score < 100) return 'Новичок';
-    if (score < 300) return 'Ученик';
-    if (score < 600) return 'Знаток';
-    return 'Математик';
+// --- Загрузка прогресса ---
+async function loadProgress() {
+    try {
+        const data = await loadUserDataFromCloud(currentUser.uid);
+        if (data) {
+            gameState = { ...gameState, ...data };
+            console.log("Прогресс загружен:", gameState);
+        } else {
+            console.log("Новый пользователь, инициализация пустого прогресса.");
+            await saveProgress(); // Сохраняем начальный статус
+        }
+        updateStatsUI();
+    } catch (error) {
+        console.error("Ошибка загрузки прогресса:", error);
+        showFeedback("Ошибка загрузки данных", "error");
+    }
 }
 
-function initGame(tasks, tasksLoaded, subject, initialUser) {
-    const gameScoreSpan = document.getElementById('gameScore');
-    const exampleImg = document.getElementById('exampleImg');
-    const answerInput = document.getElementById('answerInput');
-    const checkBtn = document.getElementById('checkBtn');
-    const skipBtn = document.getElementById('skipBtn');
-    const gameMessage = document.getElementById('gameMessage');
+// --- Сохранение прогресса ---
+async function saveProgress() {
+    if (!currentUser) return;
+    try {
+        await saveUserToCloud(currentUser.uid, gameState);
+        // console.log("Прогресс сохранен в облако");
+    } catch (error) {
+        console.error("Ошибка сохранения:", error);
+        showFeedback("Не удалось сохранить прогресс", "error");
+    }
+}
 
-    const drawerPanel = document.getElementById('drawerPanel');
-    const toggleDrawerBtn = document.getElementById('toggleDrawerBtn');
-    const closeDrawerBtn = document.getElementById('closeDrawerBtn');
-    const drawCanvas = document.getElementById('drawCanvas');
-    const clearCanvasBtn = document.getElementById('clearCanvasBtn');
-    const colorBtns = document.querySelectorAll('.color-btn');
-    const eraserBtn = document.getElementById('eraserBtn');
+// --- Логика игры ---
 
-    if (!gameScoreSpan || !exampleImg || !answerInput || !checkBtn || !skipBtn || !gameMessage ||
-        !drawerPanel || !toggleDrawerBtn || !closeDrawerBtn || !drawCanvas || !clearCanvasBtn || !eraserBtn) {
-        console.error('Не найден один из обязательных элементов');
+function generateTask() {
+    if (isProcessing) return;
+    
+    isProcessing = false;
+    ui.answerInput.value = '';
+    ui.answerInput.focus();
+    showFeedback("", "");
+
+    // Простая генерация задач в зависимости от уровня
+    const level = gameState.level;
+    let num1, num2, operator, answer, taskId;
+    
+    do {
+        const type = Math.random();
+        
+        if (type < 0.4) { // Сложение
+            num1 = Math.floor(Math.random() * (10 * level)) + 1;
+            num2 = Math.floor(Math.random() * (10 * level)) + 1;
+            operator = '+';
+            answer = num1 + num2;
+        } else if (type < 0.7) { // Вычитание
+            num1 = Math.floor(Math.random() * (10 * level)) + 5;
+            num2 = Math.floor(Math.random() * num1); // Чтобы не было отрицательных
+            operator = '-';
+            answer = num1 - num2;
+        } else { // Умножение
+            num1 = Math.floor(Math.random() * (5 * level)) + 1;
+            num2 = Math.floor(Math.random() * 10) + 1;
+            operator = '×';
+            answer = num1 * num2;
+        }
+
+        // Создаем уникальный ID задачи
+        taskId = `${num1}${operator}${num2}`;
+        
+        // Проверяем, не решали ли мы уже эту задачу (опционально, можно убрать для бесконечной игры)
+        // if (gameState.solvedTaskIds.includes(taskId)) continue; 
+        
+    } while (gameState.solvedTaskIds.includes(taskId)); // Генерируем, пока не найдем новую
+
+    currentTask = { id: taskId, answer: answer };
+    
+    // Отображаем задачу
+    ui.taskText.textContent = `${num1} ${operator} ${num2} = ?`;
+}
+
+function handleSubmission() {
+    if (isProcessing || !currentTask) return;
+    
+    const userAnswer = parseFloat(ui.answerInput.value);
+    
+    if (isNaN(userAnswer)) {
+        showFeedback("Введите число!", "error");
         return;
     }
 
-    let currentUser = initialUser;
-    let currentTaskIndex = 0;
-    let answerLocked = false;
+    isProcessing = true;
+    gameState.statistics.totalAttempts++;
 
-    let ctx = null;
-    let isDrawing = false;
-    let lastX = 0, lastY = 0;
-    let currentColor = '#000000';
-    let eraserMode = false;
-
-    const refreshUI = () => {
-        gameScoreSpan.textContent = `${currentUser.score} баллов`;
-    };
-
-    const showGameMessage = (text, isError = false) => {
-        gameMessage.textContent = text;
-        gameMessage.classList.remove('hidden');
-        if (isError) gameMessage.classList.add('error');
-        else gameMessage.classList.remove('error');
-        setTimeout(() => gameMessage.classList.add('hidden'), 3000);
-    };
-
-    const loadRandomTask = () => {
-        if (!tasksLoaded || tasks.length === 0) {
-            exampleImg.src = '';
-            exampleImg.alt = 'Задачи не загружены';
-            return;
-        }
-
-        const solvedSet = new Set(currentUser.solvedTasks);
-        const unsolvedTasks = tasks.filter(task => !solvedSet.has(task.id));
-
-        if (unsolvedTasks.length === 0) {
-            exampleImg.src = '';
-            exampleImg.alt = `🎉 Поздравляем! Вы решили все задачи по ${subject === 'math' ? 'математике' : 'физике'}!`;
-            answerInput.disabled = true;
-            checkBtn.disabled = true;
-            skipBtn.disabled = true;
-            showGameMessage(`🎉 Поздравляем! Вы решили все доступные задачи по ${subject === 'math' ? 'математике' : 'физике'}!`);
-            return;
-        }
-
-        const randomIndex = Math.floor(Math.random() * unsolvedTasks.length);
-        const task = unsolvedTasks[randomIndex];
-        currentTaskIndex = tasks.findIndex(t => t.id === task.id);
-
-        exampleImg.src = task.image;
-        exampleImg.alt = `Пример ${task.id}`;
-        answerInput.value = '';
-        gameMessage.classList.add('hidden');
-        answerLocked = false;
-        checkBtn.disabled = false;
-        checkBtn.style.opacity = '1';
-        checkBtn.style.pointerEvents = 'auto';
-        answerInput.disabled = false;
-        skipBtn.disabled = false;
-    };
-
-    const checkAnswer = async () => {
-        if (!tasksLoaded || tasks.length === 0) {
-            showGameMessage('Задачи ещё не загружены', true);
-            return;
-        }
-        if (answerLocked) {
-            showGameMessage('Вы уже ответили на этот пример', true);
-            return;
-        }
-
-        const task = tasks[currentTaskIndex];
-        const userAnswer = parseFloat(answerInput.value);
-        if (isNaN(userAnswer)) {
-            showGameMessage('Введите число!', true);
-            return;
-        }
-
-        const isCorrect = (userAnswer === task.answer);
-        const newTotal = currentUser.totalAnswered + 1;
-        let newSolved = currentUser.solved;
-        let newScore = currentUser.score;
-        const newSolvedTasks = [...currentUser.solvedTasks];
-
-        if (isCorrect) {
-            newSolved += 1;
-            newScore += subject === 'math' ? 10 : 15;
-            if (!newSolvedTasks.includes(task.id)) {
-                newSolvedTasks.push(task.id);
-            }
-            showGameMessage(`✅ Верно! +${subject === 'math' ? 10 : 15} баллов`);
-            answerLocked = true;
-            checkBtn.disabled = true;
-            checkBtn.style.opacity = '0.5';
-            checkBtn.style.pointerEvents = 'none';
-
-            const rank = getRank(newScore);
-            currentUser = await updateUserInDB(currentUser.email, {
-                solved: newSolved,
-                totalAnswered: newTotal,
-                score: newScore,
-                solvedTasks: newSolvedTasks,
-                rank
-            });
-            refreshUI();
-
-            setTimeout(() => loadRandomTask(), 1500);
-        } else {
-            showGameMessage('❌ Неверно, попробуй ещё раз', true);
-            currentUser = await updateUserInDB(currentUser.email, {
-                totalAnswered: newTotal
-            });
-            refreshUI();
-        }
-    };
-
-    const skipTask = () => {
-        loadRandomTask();
-        showGameMessage('⏭ Задача пропущена');
-    };
-
-    // Canvas functions
-    const initCanvas = () => {
-        if (drawCanvas) {
-            ctx = drawCanvas.getContext('2d');
-            if (ctx) {
-                ctx.lineWidth = 3;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = currentColor;
-                ctx.globalCompositeOperation = 'source-over';
-            }
-        }
-    };
-
-    const getCanvasCoordinates = (e) => {
-        if (!drawCanvas) return null;
-        const rect = drawCanvas.getBoundingClientRect();
-        const scaleX = drawCanvas.width / rect.width;
-        const scaleY = drawCanvas.height / rect.height;
-
-        let clientX, clientY;
-        if (e instanceof TouchEvent) {
-            if (e.touches.length === 0) return null;
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-
-        const x = (clientX - rect.left) * scaleX;
-        const y = (clientY - rect.top) * scaleY;
-        return {
-            x: Math.max(0, Math.min(drawCanvas.width, x)),
-            y: Math.max(0, Math.min(drawCanvas.height, y))
-        };
-    };
-
-    const startDrawing = (e) => {
-        e.preventDefault();
-        if (!ctx) return;
-        isDrawing = true;
-        const pos = getCanvasCoordinates(e);
-        if (pos) {
-            lastX = pos.x;
-            lastY = pos.y;
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-        }
-    };
-
-    const draw = (e) => {
-        e.preventDefault();
-        if (!isDrawing || !ctx) return;
-        const pos = getCanvasCoordinates(e);
-        if (pos) {
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            lastX = pos.x;
-            lastY = pos.y;
-        }
-    };
-
-    const stopDrawing = () => {
-        isDrawing = false;
-        if (ctx) ctx.closePath();
-    };
-
-    const setColor = (color) => {
-        currentColor = color;
-        if (ctx) {
-            ctx.strokeStyle = color;
-            ctx.globalCompositeOperation = 'source-over';
-        }
-        eraserMode = false;
-        eraserBtn.classList.remove('active');
-    };
-
-    const toggleEraser = () => {
-        if (!ctx) return;
-        eraserMode = !eraserMode;
-        eraserBtn.classList.toggle('active', eraserMode);
-        if (eraserMode) {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = 20;
-        } else {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = currentColor;
-        }
-    };
-
-    const clearCanvas = () => {
-        if (ctx && drawCanvas) {
-            ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-        }
-    };
-
-    const openDrawer = () => {
-        drawerPanel.classList.add('open');
-        drawerPanel.setAttribute('aria-hidden', 'false');
-        drawCanvas.focus();
-    };
-
-    const closeDrawer = () => {
-        drawerPanel.classList.remove('open');
-        drawerPanel.setAttribute('aria-hidden', 'true');
-    };
-
-    const toggleDrawer = () => {
-        drawerPanel.classList.contains('open') ? closeDrawer() : openDrawer();
-    };
-
-    // Event listeners
-    checkBtn.addEventListener('click', checkAnswer);
-    skipBtn.addEventListener('click', skipTask);
-    answerInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(); });
-    toggleDrawerBtn.addEventListener('click', toggleDrawer);
-    closeDrawerBtn.addEventListener('click', closeDrawer);
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawerPanel.classList.contains('open')) closeDrawer(); });
-
-    initCanvas();
-    drawCanvas.addEventListener('mousedown', startDrawing);
-    drawCanvas.addEventListener('mousemove', draw);
-    drawCanvas.addEventListener('mouseup', stopDrawing);
-    drawCanvas.addEventListener('mouseleave', stopDrawing);
-    drawCanvas.addEventListener('touchstart', startDrawing, { passive: false });
-    drawCanvas.addEventListener('touchmove', draw, { passive: false });
-    drawCanvas.addEventListener('touchend', stopDrawing);
-    drawCanvas.addEventListener('touchcancel', stopDrawing);
-
-    colorBtns.forEach(btn => btn.addEventListener('click', () => {
-        const color = btn.getAttribute('data-color');
-        if (color) setColor(color);
-    }));
-    eraserBtn.addEventListener('click', toggleEraser);
-    clearCanvasBtn.addEventListener('click', clearCanvas);
-
-    refreshUI();
-    loadRandomTask();
-}
-
-export function initGameMathPage(currentUser) {
-    if (!currentUser) {
-        window.location.href = 'auth.html';
-        return;
+    if (userAnswer === currentTask.answer) {
+        // Правильный ответ
+        handleCorrectAnswer();
+    } else {
+        // Неправильный ответ
+        handleWrongAnswer();
     }
-    initGame(tasksMath, tasksMathLoaded, 'math', currentUser);
 }
 
-export function initGamePhysPage(currentUser) {
-    if (!currentUser) {
-        window.location.href = 'auth.html';
-        return;
+function handleCorrectAnswer() {
+    showFeedback("Верно! +10 очков", "success");
+    
+    // Обновляем статистику
+    gameState.score += 10;
+    gameState.experience += 20;
+    gameState.statistics.correctAnswers++;
+    gameState.statistics.streak++;
+    gameState.statistics.totalSolved++;
+    
+    if (gameState.statistics.streak > gameState.statistics.bestStreak) {
+        gameState.statistics.bestStreak = gameState.statistics.streak;
     }
-    initGame(tasksPhys, tasksPhysLoaded, 'phys', currentUser);
+
+    // Добавляем задачу в решенные
+    if (!gameState.solvedTaskIds.includes(currentTask.id)) {
+        gameState.solvedTaskIds.push(currentTask.id);
+    }
+
+    // Проверка уровня
+    checkLevelUp();
+    
+    // Сохраняем и обновляем UI
+    saveProgress();
+    updateUI();
+    updateStatsUI();
+
+    // Следующая задача через паузу
+    setTimeout(generateTask, 1000);
 }
+
+function handleWrongAnswer() {
+    showFeedback(`Ошибка! Правильный ответ: ${currentTask.answer}`, "error");
+    
+    gameState.statistics.streak = 0;
+    
+    // Небольшой штраф или просто без бонусов
+    saveProgress();
+    updateStatsUI();
+
+    setTimeout(generateTask, 1500);
+}
+
+function checkLevelUp() {
+    const expNeeded = gameState.level * 100;
+    if (gameState.experience >= expNeeded) {
+        gameState.level++;
+        gameState.experience = 0; // Или вычесть порог, если нужна накопительная система
+        showFeedback(`Уровень повышен! Теперь вы ${gameState.level} уровня`, "success");
+        // Можно добавить звук или анимацию
+    }
+}
+
+// --- Обновление интерфейса ---
+function updateUI() {
+    if (!ui.level || !ui.score) return;
+
+    ui.level.textContent = `Ур. ${gameState.level}`;
+    ui.score.textContent = `Очки: ${gameState.score}`;
+    
+    const expNeeded = gameState.level * 100;
+    const expPercent = Math.min(100, (gameState.experience / expNeeded) * 100);
+    
+    if (ui.expBar) ui.expBar.style.width = `${expPercent}%`;
+    if (ui.expText) ui.expText.textContent = `${gameState.experience} / ${expNeeded} XP`;
+}
+
+function updateStatsUI() {
+    if (!ui.statsTotal) return;
+    
+    const acc = gameState.statistics.totalAttempts > 0 
+        ? Math.round((gameState.statistics.correctAnswers / gameState.statistics.totalAttempts) * 100) 
+        : 0;
+
+    ui.statsTotal.textContent = gameState.statistics.totalSolved;
+    ui.statsStreak.textContent = gameState.statistics.streak;
+    ui.statsAccuracy.textContent = `${acc}%`;
+}
+
+function showFeedback(text, type) {
+    if (!ui.feedback) return;
+    ui.feedback.textContent = text;
+    ui.feedback.className = type; // 'success' или 'error'
+    
+    // Анимация появления
+    ui.feedback.style.opacity = 1;
+    setTimeout(() => {
+        if (text === "") ui.feedback.style.opacity = 0;
+    }, 2000);
+}
+
+// Экспорт функции выхода (если нужна кнопка выхода в игре)
+window.logoutGame = async () => {
+    const { signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
+    await signOut(auth);
+    window.location.href = 'auth.html';
+};
