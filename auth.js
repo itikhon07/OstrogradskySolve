@@ -9,7 +9,7 @@ export async function registerUser(email, password) {
         return false;
     }
     
-    // Создаем локальную запись
+    // Создаем локальную запись в IndexedDB
     const newUser = {
         email,
         password, // Храним локально для совместимости, но вход через Firebase
@@ -22,8 +22,11 @@ export async function registerUser(email, password) {
     };
     await saveUserToDB(newUser);
     
-    // Даем время на синхронизацию с облаком
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Сохраняем в облако Firebase
+    await saveUserToCloud(newUser);
+    
+    // Даем время на полную синхронизацию
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     return true;
 }
@@ -39,6 +42,9 @@ export async function loginUser(email, password) {
     // Ждем подтверждения от Firebase onAuthStateChanged и загрузки данных
     const { waitForAuth } = await import('./firebase-sync.js');
     await waitForAuth();
+    
+    // Дополнительная пауза для гарантированной загрузки данных из облака в IndexedDB
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     return true;
 }
@@ -81,7 +87,7 @@ export function initAuthPage() {
             // Даем время на загрузку данных из облака и IndexedDB
             setTimeout(() => {
                 window.location.href = 'home.html';
-            }, 1000);
+            }, 800);
         } else {
             showAuthMessage('Неверный email или пароль', true);
         }

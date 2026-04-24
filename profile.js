@@ -1,9 +1,21 @@
 import { logoutUser } from './auth.js';
+import { getUserByEmail } from './storage.js';
 
-export function initProfilePage(currentUser) {
+export async function initProfilePage(currentUser) {
     if (!currentUser || !currentUser.email) {
         window.location.href = 'auth.html';
         return;
+    }
+
+    // Пытаемся загрузить актуальные данные пользователя из IndexedDB
+    let userData = currentUser;
+    try {
+        const freshUser = await getUserByEmail(currentUser.email);
+        if (freshUser && freshUser.email === currentUser.email) {
+            userData = freshUser;
+        }
+    } catch (e) {
+        console.warn('Не удалось загрузить свежие данные пользователя:', e);
     }
 
     const emailEl = document.getElementById('profileEmail');
@@ -13,19 +25,19 @@ export function initProfilePage(currentUser) {
     const scoreEl = document.getElementById('profileScore');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    if (emailEl) emailEl.textContent = currentUser.email;
-    if (rankEl) rankEl.textContent = currentUser.rank || 'Новичок';
-    if (solvedEl) solvedEl.textContent = (currentUser.solved || 0).toString();
-    const acc = (currentUser.totalAnswered || 0) > 0
-        ? Math.round(((currentUser.solved || 0) / (currentUser.totalAnswered || 1)) * 100)
+    if (emailEl) emailEl.textContent = userData.email;
+    if (rankEl) rankEl.textContent = userData.rank || 'Новичок';
+    if (solvedEl) solvedEl.textContent = (userData.solved || 0).toString();
+    const acc = (userData.totalAnswered || 0) > 0
+        ? Math.round(((userData.solved || 0) / (userData.totalAnswered || 1)) * 100)
         : 0;
     if (accEl) accEl.textContent = acc + '%';
-    if (scoreEl) scoreEl.textContent = (currentUser.score || 0).toString();
+    if (scoreEl) scoreEl.textContent = (userData.score || 0).toString();
 
     // Отображение массива решенных задач (для отладки/просмотра)
     const solvedTasksEl = document.getElementById('profileSolvedTasks');
     if (solvedTasksEl) {
-        const solvedIds = currentUser.solvedTaskIds || currentUser.solvedTasks || [];
+        const solvedIds = userData.solvedTaskIds || userData.solvedTasks || [];
         solvedTasksEl.textContent = `Решено задач: ${solvedIds.length}`;
     }
 

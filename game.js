@@ -4,7 +4,15 @@ import { saveUserToCloud } from './firebase-sync.js';
 
 async function updateUserInDB(email, newData) {
     const user = await getUserByEmail(email);
-    if (!user) throw new Error('User not found');
+    if (!user) {
+        // Если пользователь не найден в IndexedDB, используем данные из памяти
+        console.warn('Пользователь не найден в IndexedDB, используем данные из памяти');
+        const updated = { email, ...newData };
+        saveUserToCloud(updated).catch(e => {
+            console.error("Не удалось сохранить в облако:", e);
+        });
+        return updated;
+    }
     const updated = { ...user, ...newData };
     await saveUserToDB(updated);
     

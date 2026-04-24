@@ -14,16 +14,25 @@ async function initCurrentUser() {
     if (email) {
         // Ждем немного, чтобы Firebase успел загрузить данные
         let retries = 0;
-        while (retries < 10) {
+        while (retries < 20) {
             currentUser = await getUserByEmail(email);
-            if (currentUser && currentUser.score !== undefined) {
+            if (currentUser && currentUser.email === email) {
                 break;
             }
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 150));
             retries++;
         }
-        if (!currentUser) {
-            localStorage.removeItem('qmath_current_user');
+        if (!currentUser || currentUser.email !== email) {
+            // Если данные не загрузились, создаем временного пользователя
+            currentUser = {
+                email: email,
+                score: 0,
+                solved: 0,
+                totalAnswered: 0,
+                rank: 'Новичок',
+                solvedTasks: [],
+                solvedTaskIds: []
+            };
         }
     }
     currentUserReady = true;
@@ -36,11 +45,23 @@ export async function setCurrentUser(email) {
     if (email) {
         localStorage.setItem('qmath_current_user', email);
         let retries = 0;
-        while (retries < 10) {
+        while (retries < 20) {
             currentUser = await getUserByEmail(email);
-            if (currentUser && currentUser.score !== undefined) break;
-            await new Promise(resolve => setTimeout(resolve, 100));
+            if (currentUser && currentUser.email === email) break;
+            await new Promise(resolve => setTimeout(resolve, 150));
             retries++;
+        }
+        // Если данные не загрузились, создаем временного пользователя
+        if (!currentUser || currentUser.email !== email) {
+            currentUser = {
+                email: email,
+                score: 0,
+                solved: 0,
+                totalAnswered: 0,
+                rank: 'Новичок',
+                solvedTasks: [],
+                solvedTaskIds: []
+            };
         }
         currentUserReady = true;
     } else {
@@ -87,9 +108,15 @@ async function initPage() {
     switch (path) {
         case 'auth.html': initAuthPage(); break;
         case 'home.html': initHomePage(); break;
-        case 'game_math.html': initGameMathPage(currentUser); break;
-        case 'game_phys.html': initGamePhysPage(currentUser); break;
-        case 'profile.html': initProfilePage(currentUser); break;
+        case 'game_math.html': 
+            if (currentUser) initGameMathPage(currentUser); 
+            break;
+        case 'game_phys.html': 
+            if (currentUser) initGamePhysPage(currentUser); 
+            break;
+        case 'profile.html': 
+            if (currentUser) initProfilePage(currentUser); 
+            break;
     }
 }
 
