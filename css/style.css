@@ -581,9 +581,8 @@ body {
 /* Увеличенный и адаптивный холст */
 .draw-canvas {
     width: 100%;
-    height: auto;
-    aspect-ratio: 800 / 400;
-    max-height: 60vh;
+    height: 1200px;
+    max-height: none;
     touch-action: none;
     cursor: crosshair;
     background: #f8fafc;
