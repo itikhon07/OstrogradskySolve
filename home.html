@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>OstrogradskySolve – Главная</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OstrogradskySolve">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+    <div class="top-bar">
+        <a href="profile.html" class="profile-link" id="profileLink"><i class="fas fa-user-circle"></i></a>
+        <div class="greeting" id="greeting">Загрузка...</div>
+    </div>
+    <div class="home-screen">
+        <h2><i class="fas fa-graduation-cap"></i> OstrogradskySolve</h2>
+        <p><strong>Михаил Васильевич Остроградский</strong> (1801–1862) — выдающийся российский математик и механик, академик Петербургской академии наук.</p>
+        <p>Выберите предмет для тренировки</p>
+        <button class="btn start-btn" id="startMathBtn"><i class="fas fa-calculator"></i> Математика</button>
+        <button class="btn start-btn" id="startPhysBtn"><i class="fas fa-atom"></i> Физика</button>
+    </div>
+</div>
+<script type="module" src="main.js"></script>
+</body>
+</html>

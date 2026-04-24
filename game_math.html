@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>OstrogradskySolve – Математика</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="OstrogradskySolve">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="math-theme game-page">
+<div id="app">
+    <div class="top-bar">
+        <a href="profile.html" class="profile-link" id="profileLink"><i class="fas fa-user-circle"></i></a>
+        <div class="greeting" id="greeting">Загрузка...</div>
+    </div>
+
+    <div class="game-screen">
+        <div class="game-header">
+            <span class="score-badge" id="gameScore"><i class="fas fa-star"></i> 0 баллов</span>
+        </div>
+
+        <div class="example-row">
+            <div class="example-image">
+                <img id="exampleImg" src="" alt="Математический пример">
+            </div>
+            <button class="btn-drawer" id="toggleDrawerBtn" aria-label="Открыть доску для рисования"><i class="fas fa-pencil-ruler"></i></button>
+        </div>
+
+        <div id="drawerPanel" class="drawer-panel" aria-hidden="true">
+            <div class="drawer-header">
+                <span class="drawer-title"><i class="fas fa-chalkboard"></i> Доска для заметок</span>
+                <button class="drawer-close" id="closeDrawerBtn"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="drawer-canvas-container">
+                <canvas id="drawCanvas" width="800" height="400" class="draw-canvas"></canvas>
+            </div>
+            <div class="drawer-tools">
+                <button class="color-btn" data-color="#000000" style="background:#000000;" aria-label="Чёрный"></button>
+                <button class="color-btn" data-color="#ff0000" style="background:#ff0000;" aria-label="Красный"></button>
+                <button class="color-btn" data-color="#0000ff" style="background:#0000ff;" aria-label="Синий"></button>
+                <button class="color-btn" data-color="#00ff00" style="background:#00ff00;" aria-label="Зелёный"></button>
+                <button class="color-btn" data-color="#ffff00" style="background:#ffff00;" aria-label="Жёлтый"></button>
+                <button class="tool-btn" id="eraserBtn" title="Ластик"><i class="fas fa-eraser"></i></button>
+                <button class="clear-btn" id="clearCanvasBtn"><i class="fas fa-eraser"></i> Очистить</button>
+            </div>
+        </div>
+
+        <input type="number" id="answerInput" class="answer-input" placeholder="Ваш ответ" step="any">
+        <div class="action-buttons">
+            <button class="btn" id="checkBtn"><i class="fas fa-check"></i> Проверить</button>
+            <button class="btn btn-skip" id="skipBtn"><i class="fas fa-forward"></i> Пропустить</button>
+        </div>
+        <div id="gameMessage" class="message hidden"></div>
+
+        <div class="bonus-info">
+            <div class="bonus-title">Получите дополнительные баллы:</div>
+            <div class="bonus-item">1) Своя или найденная интересная задача с решением и ответом — <strong>20 баллов</strong>.</div>
+            <div class="bonus-item">2) Исправленная ошибка в нашей задаче — <strong>15 баллов</strong>.</div>
+            <div class="bonus-email">Писать на почту: <a href="mailto:IlyaDev@ostrogradsky.com">IlyaDev@ostrogradsky.com</a></div>
+        </div>
+    </div>
+</div>
+<script type="module" src="main.js"></script>
+</body>
+</html>
