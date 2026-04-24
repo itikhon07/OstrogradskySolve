@@ -45,6 +45,13 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
         return;
     }
 
+    // Проверка на валидность пользователя
+    if (!initialUser || !initialUser.email) {
+        console.error('Пользователь не авторизован');
+        window.location.href = 'auth.html';
+        return;
+    }
+
     let currentUser = initialUser;
     let currentTaskIndex = 0;
     let answerLocked = false;
@@ -56,6 +63,7 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
     let eraserMode = false;
 
     const refreshUI = () => {
+        if (!currentUser) return;
         gameScoreSpan.textContent = `${currentUser.score} баллов`;
     };
 

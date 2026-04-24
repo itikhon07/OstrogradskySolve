@@ -21,6 +21,10 @@ export async function registerUser(email, password) {
         solvedTaskIds: [] // Массив ID решенных задач
     };
     await saveUserToDB(newUser);
+    
+    // Даем время на синхронизацию с облаком
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     return true;
 }
 
@@ -32,7 +36,10 @@ export async function loginUser(email, password) {
         return false;
     }
     
-    // Данные загрузятся автоматически через onAuthStateChanged в firebase-sync.js
+    // Ждем подтверждения от Firebase onAuthStateChanged и загрузки данных
+    const { waitForAuth } = await import('./firebase-sync.js');
+    await waitForAuth();
+    
     return true;
 }
 
@@ -71,10 +78,10 @@ export function initAuthPage() {
         showAuthMessage('Вход...');
         if (await loginUser(email, password)) {
             localStorage.setItem('qmath_current_user', email);
-            // Небольшая задержка для загрузки данных из облака
+            // Даем время на загрузку данных из облака и IndexedDB
             setTimeout(() => {
                 window.location.href = 'home.html';
-            }, 500);
+            }, 1000);
         } else {
             showAuthMessage('Неверный email или пароль', true);
         }
@@ -96,6 +103,13 @@ export function initAuthPage() {
             authPassword.value = '';
         } else {
             showAuthMessage('Ошибка регистрации или пользователь уже существует', true);
+        }
+    });
+
+    // Обработка нажатия Enter в поле пароля
+    authPassword.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            loginBtn.click();
         }
     });
 }

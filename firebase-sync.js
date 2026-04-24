@@ -22,17 +22,31 @@ const auth = getAuth(app);
 let currentUserEmail = null;
 
 // Отслеживание текущего пользователя
+let authResolve = null;
+let authPromise = new Promise(resolve => { authResolve = resolve; });
+
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUserEmail = user.email;
         console.log("Пользователь вошел:", currentUserEmail);
         // Автоматически загружаем данные из облака при входе
-        loadUserDataFromCloud(user.email);
+        loadUserDataFromCloud(user.email).then(() => {
+            if (authResolve) authResolve(user.email);
+        });
     } else {
         currentUserEmail = null;
         console.log("Пользователь вышел");
+        if (authResolve) authResolve(null);
+        authPromise = new Promise(resolve => { authResolve = resolve; });
     }
 });
+
+/**
+ * Возвращает промис, который разрешается когда пользователь авторизован
+ */
+export function waitForAuth() {
+    return currentUserEmail ? Promise.resolve(currentUserEmail) : authPromise;
+}
 
 /**
  * Сохраняет данные пользователя в облако Firebase

@@ -7,23 +7,46 @@ import { initGameMathPage, initGamePhysPage } from './game.js';
 import { initProfilePage } from './profile.js';
 
 let currentUser = null;
+let currentUserReady = false;
 
 async function initCurrentUser() {
     const email = localStorage.getItem('qmath_current_user');
     if (email) {
-        currentUser = await getUserByEmail(email);
-        if (!currentUser) localStorage.removeItem('qmath_current_user');
+        // Ждем немного, чтобы Firebase успел загрузить данные
+        let retries = 0;
+        while (retries < 10) {
+            currentUser = await getUserByEmail(email);
+            if (currentUser && currentUser.score !== undefined) {
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+        }
+        if (!currentUser) {
+            localStorage.removeItem('qmath_current_user');
+        }
     }
+    currentUserReady = true;
 }
+
+export function isUserReady() { return currentUserReady; }
 
 export function getCurrentUser() { return currentUser; }
 export async function setCurrentUser(email) {
     if (email) {
         localStorage.setItem('qmath_current_user', email);
-        currentUser = await getUserByEmail(email);
+        let retries = 0;
+        while (retries < 10) {
+            currentUser = await getUserByEmail(email);
+            if (currentUser && currentUser.score !== undefined) break;
+            await new Promise(resolve => setTimeout(resolve, 100));
+            retries++;
+        }
+        currentUserReady = true;
     } else {
         localStorage.removeItem('qmath_current_user');
         currentUser = null;
+        currentUserReady = false;
     }
 }
 
