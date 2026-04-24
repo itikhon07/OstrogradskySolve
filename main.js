@@ -1,4 +1,5 @@
-import { migrateFromLocalStorage, getUsersFromDB } from './storage.js';
+import { migrateFromLocalStorage } from './storage.js';
+import { getUserByEmail } from './storage.js';
 import { loadTasksMath, loadTasksPhys } from './tasks.js';
 import { initAuthPage } from './auth.js';
 import { initHomePage } from './home.js';
@@ -10,16 +11,20 @@ let currentUser = null;
 async function initCurrentUser() {
     const email = localStorage.getItem('qmath_current_user');
     if (email) {
-        const users = await getUsersFromDB();
-        currentUser = users[email] ? { email, ...users[email] } : null;
+        currentUser = await getUserByEmail(email);
         if (!currentUser) localStorage.removeItem('qmath_current_user');
     }
 }
 
 export function getCurrentUser() { return currentUser; }
-export function setCurrentUser(email) {
-    if (email) localStorage.setItem('qmath_current_user', email);
-    else localStorage.removeItem('qmath_current_user');
+export async function setCurrentUser(email) {
+    if (email) {
+        localStorage.setItem('qmath_current_user', email);
+        currentUser = await getUserByEmail(email);
+    } else {
+        localStorage.removeItem('qmath_current_user');
+        currentUser = null;
+    }
 }
 
 async function initPage() {

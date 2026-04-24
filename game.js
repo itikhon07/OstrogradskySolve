@@ -1,22 +1,19 @@
 import { tasksMath, tasksMathLoaded, tasksPhys, tasksPhysLoaded } from './tasks.js';
-import { saveUserToDB, getUsersFromDB } from './storage.js';
+import { getUserByEmail, saveUserToDB } from './storage.js';
 import { saveUserToCloud } from './firebase-sync.js';
 
 async function updateUserInDB(email, newData) {
-    const users = await getUsersFromDB();
-    const user = users[email];
+    const user = await getUserByEmail(email);
     if (!user) throw new Error('User not found');
     const updated = { ...user, ...newData };
-    await saveUserToDB({ email, ...updated });
+    await saveUserToDB(updated);
     
-    // Сохраняем в облако Firebase
-    try {
-        await saveUserToCloud({ email, ...updated });
-    } catch (e) {
+    // Сохраняем в облако Firebase (асинхронно, не блокируем UI)
+    saveUserToCloud(updated).catch(e => {
         console.error("Не удалось сохранить в облако:", e);
-    }
+    });
     
-    return { email, ...updated };
+    return updated;
 }
 
 function getRank(score) {
@@ -77,7 +74,7 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
             return;
         }
 
-        const solvedSet = new Set(currentUser.solvedTasks);
+        const solvedSet = new Set(currentUser.solvedTasks || currentUser.solvedTaskIds || []);
         const unsolvedTasks = tasks.filter(task => !solvedSet.has(task.id));
 
         if (unsolvedTasks.length === 0) {
@@ -127,7 +124,7 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
         const newTotal = currentUser.totalAnswered + 1;
         let newSolved = currentUser.solved;
         let newScore = currentUser.score;
-        const newSolvedTasks = [...currentUser.solvedTasks];
+        const newSolvedTasks = [...(currentUser.solvedTasks || currentUser.solvedTaskIds || [])];
 
         if (isCorrect) {
             newSolved += 1;
@@ -147,6 +144,7 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
                 totalAnswered: newTotal,
                 score: newScore,
                 solvedTasks: newSolvedTasks,
+                solvedTaskIds: newSolvedTasks,
                 rank
             });
             refreshUI();

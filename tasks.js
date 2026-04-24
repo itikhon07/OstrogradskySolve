@@ -10,8 +10,10 @@ export let tasksPhys = [];
 export let tasksPhysLoaded = false;
 
 export async function loadTasksMath() {
+    if (tasksMathLoaded) return Promise.resolve();
+    
     try {
-        const response = await fetch(TASKS_FILE_M);
+        const response = await fetch(TASKS_FILE_M, { cache: 'force-cache' });
         if (!response.ok) throw new Error('Не удалось загрузить файл с ответами по математике');
         const text = await response.text();
         const lines = text.split('\n').filter(line => line.trim() !== '');
@@ -34,8 +36,10 @@ export async function loadTasksMath() {
 }
 
 export async function loadTasksPhys() {
+    if (tasksPhysLoaded) return Promise.resolve();
+    
     try {
-        const response = await fetch(TASKS_FILE_P);
+        const response = await fetch(TASKS_FILE_P, { cache: 'force-cache' });
         if (!response.ok) throw new Error('Не удалось загрузить файл с ответами по физике');
         const text = await response.text();
         const lines = text.split('\n').filter(line => line.trim() !== '');
