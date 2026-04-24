@@ -1,5 +1,6 @@
 import { tasksMath, tasksMathLoaded, tasksPhys, tasksPhysLoaded } from './tasks.js';
 import { saveUserToDB, getUsersFromDB } from './storage.js';
+import { saveUserToCloud } from './firebase-sync.js';
 
 async function updateUserInDB(email, newData) {
     const users = await getUsersFromDB();
@@ -7,6 +8,14 @@ async function updateUserInDB(email, newData) {
     if (!user) throw new Error('User not found');
     const updated = { ...user, ...newData };
     await saveUserToDB({ email, ...updated });
+    
+    // Сохраняем в облако Firebase
+    try {
+        await saveUserToCloud({ email, ...updated });
+    } catch (e) {
+        console.error("Не удалось сохранить в облако:", e);
+    }
+    
     return { email, ...updated };
 }
 

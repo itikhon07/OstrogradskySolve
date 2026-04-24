@@ -1,3 +1,5 @@
+import { logoutUser } from './auth.js';
+
 export function initProfilePage(currentUser) {
     if (!currentUser) {
         window.location.href = 'auth.html';
@@ -20,8 +22,13 @@ export function initProfilePage(currentUser) {
     if (accEl) accEl.textContent = acc + '%';
     if (scoreEl) scoreEl.textContent = currentUser.score.toString();
 
-    logoutBtn?.addEventListener('click', () => {
-        localStorage.removeItem('qmath_current_user');
-        window.location.href = 'auth.html';
+    // Отображение массива решенных задач (для отладки/просмотра)
+    const solvedTasksEl = document.getElementById('profileSolvedTasks');
+    if (solvedTasksEl && currentUser.solvedTaskIds) {
+        solvedTasksEl.textContent = `Решено задач: ${currentUser.solvedTaskIds.length}`;
+    }
+
+    logoutBtn?.addEventListener('click', async () => {
+        await logoutUser();
     });
 }
