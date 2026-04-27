@@ -1,9 +1,11 @@
 // Игровой модуль для математики и физики
 // Все данные хранятся локально через IndexedDB
 
-import { getCurrentUser, loadUserData, updateUserData } from './main.js';
-import { saveUserToDB } from './storage.js';
+import { openDB } from './storage.js';
 import { tasksMath, tasksPhys, loadTasksMath, loadTasksPhys } from './tasks.js';
+
+const DB_NAME = 'OstrogradskyDB';
+const STORE_USERS = 'users';
 
 let currentUser = null;
 let currentProblem = null;
@@ -17,21 +19,73 @@ let currentColor = '#000000';
 let isEraser = false;
 let brushSize = 3;
 
+// Получение текущего пользователя
+function getCurrentUserEmail() {
+    return localStorage.getItem('qmath_current_user');
+}
+
+// Загрузка данных пользователя
+async function loadUserData(email) {
+    if (!email) return null;
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_USERS, 'readonly');
+        const store = tx.objectStore(STORE_USERS);
+        const request = store.get(email);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result || null);
+    });
+}
+
+// Сохранение данных пользователя
+async function saveUserData(user) {
+    if (!user || !user.email) return false;
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_USERS, 'readwrite');
+        const store = tx.objectStore(STORE_USERS);
+        const request = store.put(user);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(true);
+    });
+}
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
-    // Загрузка задач
-    await loadTasksMath();
-    await loadTasksPhys();
+    console.log('Страница загружена, начинаем инициализацию...');
     
-    initAuth();
+    // Загрузка задач
+    try {
+        await loadTasksMath();
+        console.log(`Математика: загружено ${tasksMath.length} задач`);
+    } catch (e) {
+        console.error('Ошибка загрузки математики:', e);
+    }
+    
+    try {
+        await loadTasksPhys();
+        console.log(`Физика: загружено ${tasksPhys.length} задач`);
+    } catch (e) {
+        console.error('Ошибка загрузки физики:', e);
+    }
+    
     initCanvas();
     initButtons();
-    loadNewProblem();
+    
+    // Инициализация аутентификации и загрузка первой задачи
+    try {
+        await initAuth();
+        loadNewProblem();
+    } catch (e) {
+        console.error('Ошибка инициализации:', e);
+        // Перенаправление на страницу авторизации в случае ошибки
+        window.location.href = 'auth.html';
+    }
 });
 
 // Инициализация аутентификации
 async function initAuth() {
-    const email = getCurrentUser();
+    const email = getCurrentUserEmail();
     if (email) {
         currentUser = await loadUserData(email);
         if (currentUser) {
@@ -309,7 +363,7 @@ async function checkAnswer() {
                 }
                 
                 // Сохраняем обновленные данные в IndexedDB
-                await saveUserToDB(currentUser);
+                await saveUserData(currentUser);
             } catch (error) {
                 console.error('Ошибка обновления счета:', error);
             }
@@ -323,7 +377,7 @@ async function checkAnswer() {
         // Неправильный ответ
         if (currentUser) {
             currentUser.totalAnswered = (currentUser.totalAnswered || 0) + 1;
-            await saveUserToDB(currentUser);
+            await saveUserData(currentUser);
         }
         showMessage(`Неправильно. Попробуйте еще раз!`, 'error');
     }

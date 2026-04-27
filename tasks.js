@@ -11,6 +11,7 @@ export let tasksPhysLoaded = false;
 
 export async function loadTasksMath() {
     try {
+        console.log('Загрузка задач по математике...');
         const response = await fetch(TASKS_FILE_M);
         if (!response.ok) throw new Error('Не удалось загрузить файл с ответами по математике');
         const text = await response.text();
@@ -35,6 +36,7 @@ export async function loadTasksMath() {
 
 export async function loadTasksPhys() {
     try {
+        console.log('Загрузка задач по физике...');
         const response = await fetch(TASKS_FILE_P);
         if (!response.ok) throw new Error('Не удалось загрузить файл с ответами по физике');
         const text = await response.text();
