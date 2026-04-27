@@ -1,7 +1,33 @@
 // Модуль профиля для работы с локальной базой данных IndexedDB
-import { logoutUser } from './main.js';
+import { openDB } from './storage.js';
 
-export function initProfilePage(currentUser) {
+const DB_NAME = 'OstrogradskyDB';
+const STORE_USERS = 'users';
+
+function getCurrentUserEmail() {
+    return localStorage.getItem('qmath_current_user');
+}
+
+async function loadUserData(email) {
+    if (!email) return null;
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_USERS, 'readonly');
+        const store = tx.objectStore(STORE_USERS);
+        const request = store.get(email);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result || null);
+    });
+}
+
+export function logoutUser() {
+    localStorage.removeItem('qmath_current_user');
+}
+
+export async function initProfilePage() {
+    const email = getCurrentUserEmail();
+    const currentUser = await loadUserData(email);
+    
     if (!currentUser) {
         window.location.href = 'auth.html';
         return;

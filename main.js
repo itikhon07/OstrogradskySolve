@@ -1,5 +1,8 @@
 // Локальное хранилище данных через IndexedDB
-import { getUsersFromDB, saveUserToDB } from './storage.js';
+import { openDB, getUsersFromDB, saveUserToDB } from './storage.js';
+
+const DB_NAME = 'OstrogradskyDB';
+const STORE_USERS = 'users';
 
 // Глобальные переменные для текущего пользователя
 let currentUserEmail = null;
@@ -16,8 +19,14 @@ export function getCurrentUser() {
 // Загрузка данных пользователя из базы
 export async function loadUserData(email) {
     if (!email) return null;
-    const users = await getUsersFromDB();
-    return users[email] || null;
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_USERS, 'readonly');
+        const store = tx.objectStore(STORE_USERS);
+        const request = store.get(email);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result || null);
+    });
 }
 
 // Обновление данных пользователя
@@ -71,10 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Инициализация страницы профиля
         import('./profile.js').then(module => {
             if (module.initProfilePage) {
-                const email = getCurrentUser();
-                loadUserData(email).then(userData => {
-                    module.initProfilePage(userData);
-                });
+                module.initProfilePage();
             }
             console.log('Модуль профиля загружен');
         }).catch(error => {
