@@ -1,6 +1,5 @@
 import { tasksMath, tasksMathLoaded, tasksPhys, tasksPhysLoaded } from './tasks.js';
 import { saveUserToDB, getUsersFromDB } from './storage.js';
-import { saveUserToCloud } from './firebase-sync.js';
 
 async function updateUserInDB(email, newData) {
     const users = await getUsersFromDB();
@@ -8,14 +7,6 @@ async function updateUserInDB(email, newData) {
     if (!user) throw new Error('User not found');
     const updated = { ...user, ...newData };
     await saveUserToDB({ email, ...updated });
-    
-    // Сохраняем в облако Firebase
-    try {
-        await saveUserToCloud({ email, ...updated });
-    } catch (e) {
-        console.error("Не удалось сохранить в облако:", e);
-    }
-    
     return { email, ...updated };
 }
 
@@ -77,7 +68,8 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
             return;
         }
 
-        const solvedSet = new Set(currentUser.solvedTasks);
+        // Используем solvedTaskIds для проверки решенных задач
+        const solvedSet = new Set(currentUser.solvedTaskIds || currentUser.solvedTasks || []);
         const unsolvedTasks = tasks.filter(task => !solvedSet.has(task.id));
 
         if (unsolvedTasks.length === 0) {
@@ -127,13 +119,15 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
         const newTotal = currentUser.totalAnswered + 1;
         let newSolved = currentUser.solved;
         let newScore = currentUser.score;
-        const newSolvedTasks = [...currentUser.solvedTasks];
+        // Объединяем solvedTasks и solvedTaskIds для обратной совместимости
+        const existingSolvedIds = new Set([...(currentUser.solvedTasks || []), ...(currentUser.solvedTaskIds || [])]);
+        const newSolvedTaskIds = Array.from(existingSolvedIds);
 
         if (isCorrect) {
             newSolved += 1;
             newScore += subject === 'math' ? 10 : 15;
-            if (!newSolvedTasks.includes(task.id)) {
-                newSolvedTasks.push(task.id);
+            if (!existingSolvedIds.has(task.id)) {
+                newSolvedTaskIds.push(task.id);
             }
             showGameMessage(`✅ Верно! +${subject === 'math' ? 10 : 15} баллов`);
             answerLocked = true;
@@ -146,7 +140,8 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
                 solved: newSolved,
                 totalAnswered: newTotal,
                 score: newScore,
-                solvedTasks: newSolvedTasks,
+                solvedTasks: newSolvedTaskIds, // Обновляем оба поля для совместимости
+                solvedTaskIds: newSolvedTaskIds,
                 rank
             });
             refreshUI();
