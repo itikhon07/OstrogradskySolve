@@ -73,14 +73,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initButtons();
     
     // Инициализация аутентификации и загрузка первой задачи
-    try {
-        await initAuth();
-        loadNewProblem();
-    } catch (e) {
-        console.error('Ошибка инициализации:', e);
-        // Перенаправление на страницу авторизации в случае ошибки
-        window.location.href = 'auth.html';
-    }
+    await initAuth();
 });
 
 // Инициализация аутентификации
@@ -92,6 +85,7 @@ async function initAuth() {
             document.getElementById('greeting').textContent = `Привет, ${email.split('@')[0]}!`;
             score = currentUser.score || 0;
             updateScoreDisplay();
+            loadNewProblem();
         } else {
             window.location.href = 'auth.html';
         }
