@@ -45,47 +45,37 @@ export function logoutUser() {
 }
 
 // Инициализация при загрузке страницы
-function initMain() {
+async function initMain() {
     const path = window.location.pathname;
     const page = path.split('/').pop() || 'index.html';
 
+    console.log('Инициализация страницы:', page);
+
     if (page.includes('auth.html')) {
         // Инициализация страницы авторизации
-        import('./auth.js').then(module => {
-            if (module.initAuthPage) {
-                module.initAuthPage();
-            }
-            console.log('Модуль авторизации загружен');
-        }).catch(error => {
-            console.error('Ошибка загрузки модуля авторизации:', error);
-        });
+        const module = await import('./auth.js');
+        if (module.initAuthPage) {
+            module.initAuthPage();
+        }
+        console.log('Модуль авторизации загружен');
     } else if (page.includes('game_math.html') || page.includes('game_phys.html')) {
         // Инициализация игровой логики - game.js сам запускается при импорте
-        import('./game.js').then(module => {
-            console.log('Игровой модуль загружен');
-        }).catch(error => {
-            console.error('Ошибка загрузки игрового модуля:', error);
-        });
+        const module = await import('./game.js');
+        console.log('Игровой модуль загружен');
     } else if (page.includes('home.html')) {
         // Инициализация главной страницы
-        import('./home.js').then(module => {
-            if (module.initHomePage) {
-                module.initHomePage();
-            }
-            console.log('Модуль главной страницы загружен');
-        }).catch(error => {
-            console.error('Ошибка загрузки модуля главной страницы:', error);
-        });
+        const module = await import('./home.js');
+        if (module.initHomePage) {
+            await module.initHomePage();
+        }
+        console.log('Модуль главной страницы загружен');
     } else if (page.includes('profile.html')) {
         // Инициализация страницы профиля
-        import('./profile.js').then(module => {
-            if (module.initProfilePage) {
-                module.initProfilePage();
-            }
-            console.log('Модуль профиля загружен');
-        }).catch(error => {
-            console.error('Ошибка загрузки модуля профиля:', error);
-        });
+        const module = await import('./profile.js');
+        if (module.initProfilePage) {
+            await module.initProfilePage();
+        }
+        console.log('Модуль профиля загружен');
     }
     // Добавьте другие страницы по мере необходимости
 }
