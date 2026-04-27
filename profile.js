@@ -27,26 +27,32 @@ export function logoutUser() {
 export async function initProfilePage() {
     const email = getCurrentUserEmail();
     const currentUser = await loadUserData(email);
-    
+
     if (!currentUser) {
         window.location.href = 'auth.html';
         return;
     }
-    
+
     const emailEl = document.getElementById('profileEmail');
     const rankEl = document.getElementById('profileRank');
     const solvedEl = document.getElementById('profileSolved');
     const accEl = document.getElementById('profileAccuracy');
     const scoreEl = document.getElementById('profileScore');
+    const greetingEl = document.getElementById('greeting');
     const logoutBtn = document.getElementById('logoutBtn');
-    
+
     // Защита от XSS - экранирование email
     const escapeHtml = (text) => {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     };
-    
+
+    // Обновление приветствия в верхней панели
+    if (greetingEl) {
+        greetingEl.textContent = `Привет, ${currentUser.email.split('@')[0]}!`;
+    }
+
     if (emailEl) emailEl.textContent = escapeHtml(currentUser.email);
     if (rankEl) rankEl.textContent = currentUser.rank || 'Новичок';
     if (solvedEl) solvedEl.textContent = (currentUser.solved || 0).toString();
@@ -55,7 +61,7 @@ export async function initProfilePage() {
         : 0;
     if (accEl) accEl.textContent = acc + '%';
     if (scoreEl) scoreEl.textContent = (currentUser.score || 0).toString();
-    
+
     logoutBtn?.addEventListener('click', () => {
         logoutUser();
         window.location.href = 'auth.html';
