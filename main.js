@@ -45,7 +45,7 @@ export function logoutUser() {
 }
 
 // Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
+export async function initGame() {
     const path = window.location.pathname;
     const page = path.split('/').pop() || 'index.html';
 
@@ -88,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     // Добавьте другие страницы по мере необходимости
-});
+}
+initGame();
 
 // Глобальные обработчики событий (если нужны)
 window.addEventListener('beforeunload', () => {
