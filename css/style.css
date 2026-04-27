@@ -541,6 +541,16 @@ body {
     background: #f1f5f9;
 }
 
+/* Кнопка "На главную" — универсальный дизайн */
+.btn-home {
+    background: #2c3e66;
+    color: white;
+    border: none;
+}
+.btn-home:hover {
+    background: #1e2a4a;
+}
+
 /* Доска для рисования */
 .drawer-panel {
     display: none;

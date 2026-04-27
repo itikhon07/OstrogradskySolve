@@ -32,6 +32,7 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
     const answerInput = document.getElementById('answerInput');
     const checkBtn = document.getElementById('checkBtn');
     const skipBtn = document.getElementById('skipBtn');
+    const homeBtn = document.getElementById('homeBtn');
     const gameMessage = document.getElementById('gameMessage');
 
     const drawerPanel = document.getElementById('drawerPanel');
@@ -42,7 +43,7 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
     const colorBtns = document.querySelectorAll('.color-btn');
     const eraserBtn = document.getElementById('eraserBtn');
 
-    if (!gameScoreSpan || !exampleImg || !answerInput || !checkBtn || !skipBtn || !gameMessage ||
+    if (!gameScoreSpan || !exampleImg || !answerInput || !checkBtn || !skipBtn || !homeBtn || !gameMessage ||
         !drawerPanel || !toggleDrawerBtn || !closeDrawerBtn || !drawCanvas || !clearCanvasBtn || !eraserBtn) {
         console.error('Не найден один из обязательных элементов');
         return;
@@ -166,6 +167,10 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
         showGameMessage('⏭ Задача пропущена');
     };
 
+    const goToHome = () => {
+        window.location.href = 'home.html';
+    };
+
     // Canvas functions
     const initCanvas = () => {
         if (drawCanvas) {
@@ -281,6 +286,7 @@ function initGame(tasks, tasksLoaded, subject, initialUser) {
     // Event listeners
     checkBtn.addEventListener('click', checkAnswer);
     skipBtn.addEventListener('click', skipTask);
+    homeBtn.addEventListener('click', goToHome);
     answerInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(); });
     toggleDrawerBtn.addEventListener('click', toggleDrawer);
     closeDrawerBtn.addEventListener('click', closeDrawer);
