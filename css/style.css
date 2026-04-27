@@ -288,10 +288,12 @@ body {
     flex-shrink: 0;
     border-bottom: 1px solid #e2e8f0;
     padding-bottom: 12px;
+    gap: 12px;
 }
 
 .profile-link,
-.back-link {
+.back-link,
+.btn-home-top {
     text-decoration: none;
     color: #2c3e66;
     background: #f1f5f9;
@@ -306,6 +308,16 @@ body {
 .profile-link {
     width: 42px;
     font-size: 1.2rem;
+}
+.btn-home-top {
+    width: 42px;
+    font-size: 1.2rem;
+    background: #2c3e66;
+    color: white;
+    border: none;
+}
+.btn-home-top:hover {
+    background: #1e2a4a;
 }
 .back-link {
     width: auto;
@@ -541,7 +553,7 @@ body {
     background: #f1f5f9;
 }
 
-/* Кнопка "На главную" — универсальный дизайн */
+/* Кнопка "На главную" — универсальный дизайн (для старых версий) */
 .btn-home {
     background: #2c3e66;
     color: white;
@@ -792,11 +804,13 @@ body.math-theme .btn-skip:hover {
     background: #fff3e0;
 }
 /* Кнопка "На главную" в математике — универсальный дизайн */
-body.math-theme .btn-home {
+body.math-theme .btn-home,
+body.math-theme .btn-home-top {
     background: #2c3e66;
     color: white;
 }
-body.math-theme .btn-home:hover {
+body.math-theme .btn-home:hover,
+body.math-theme .btn-home-top:hover {
     background: #1e2a4a;
 }
 
@@ -864,11 +878,13 @@ body.phys-theme .btn-skip:hover {
     background: #f3e8ff;
 }
 /* Кнопка "На главную" в физике — универсальный дизайн */
-body.phys-theme .btn-home {
+body.phys-theme .btn-home,
+body.phys-theme .btn-home-top {
     background: #2c3e66;
     color: white;
 }
-body.phys-theme .btn-home:hover {
+body.phys-theme .btn-home:hover,
+body.phys-theme .btn-home-top:hover {
     background: #1e2a4a;
 }
 
