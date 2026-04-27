@@ -54,6 +54,9 @@ async function saveUserData(user) {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Страница загружена, начинаем инициализацию...');
     
+    // Сначала инициализируем аутентификацию и ждем загрузки пользователя
+    const userLoaded = await initAuth();
+    
     // Загрузка задач
     try {
         await loadTasksMath();
@@ -69,11 +72,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Ошибка загрузки физики:', e);
     }
     
+    // Инициализация canvas и кнопок после аутентификации
     initCanvas();
     initButtons();
     
-    // Инициализация аутентификации и загрузка первой задачи
-    await initAuth();
+    // Загружаем первую задачу только если пользователь успешно аутентифицирован
+    if (userLoaded) {
+        loadNewProblem();
+    }
 });
 
 // Инициализация аутентификации
@@ -85,12 +91,14 @@ async function initAuth() {
             document.getElementById('greeting').textContent = `Привет, ${email.split('@')[0]}!`;
             score = currentUser.score || 0;
             updateScoreDisplay();
-            loadNewProblem();
+            return true; // Пользователь успешно загружен
         } else {
             window.location.href = 'auth.html';
+            return false;
         }
     } else {
         window.location.href = 'auth.html';
+        return false;
     }
 }
 
