@@ -311,11 +311,14 @@ async function loadNewProblem() {
     // Фильтруем задачи, исключая уже решенные
     let availableTasks = allTasks.filter(task => !solvedTaskIds.includes(task.id));
     
-    // Если все задачи решены или задачи не загружены, используем все задачи
+    // Если все задачи решены, показываем сообщение и останавливаемся
     if (availableTasks.length === 0) {
-        availableTasks = allTasks;
-        // Опционально: можно очистить список решенных или показать сообщение
-        console.log('Все задачи решены! Начинаем заново.');
+        const subjectName = isMath ? 'математике' : 'физике';
+        showMessage(`Поздравляем! Вы решили все доступные задачи по ${subjectName}!`, 'success');
+        document.getElementById('answerInput').disabled = true;
+        document.getElementById('checkBtn').disabled = true;
+        document.getElementById('skipBtn').disabled = true;
+        return;
     }
     
     if (availableTasks && availableTasks.length > 0) {
