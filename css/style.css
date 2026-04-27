@@ -791,6 +791,14 @@ body.math-theme .btn-skip {
 body.math-theme .btn-skip:hover {
     background: #fff3e0;
 }
+/* Кнопка "На главную" в математике — универсальный дизайн */
+body.math-theme .btn-home {
+    background: #2c3e66;
+    color: white;
+}
+body.math-theme .btn-home:hover {
+    background: #1e2a4a;
+}
 
 /* ===== ТЕМА ФИЗИКИ (фиолетовая) ===== */
 body.phys-theme .btn,
@@ -854,6 +862,14 @@ body.phys-theme .btn-skip {
 }
 body.phys-theme .btn-skip:hover {
     background: #f3e8ff;
+}
+/* Кнопка "На главную" в физике — универсальный дизайн */
+body.phys-theme .btn-home {
+    background: #2c3e66;
+    color: white;
+}
+body.phys-theme .btn-home:hover {
+    background: #1e2a4a;
 }
 
 /* --- Информационный блок о бонусах --- */
