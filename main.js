@@ -1,29 +1,56 @@
+// Локальное хранилище данных через IndexedDB
+import { getUsersFromDB, saveUserToDB } from './storage.js';
 
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
-import { getFirestore } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+// Глобальные переменные для текущего пользователя
+let currentUserEmail = null;
+let currentUserData = null;
 
-// Конфигурация Firebase
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
-};
+// Получение текущего пользователя из localStorage
+export function getCurrentUser() {
+    if (!currentUserEmail) {
+        currentUserEmail = localStorage.getItem('qmath_current_user');
+    }
+    return currentUserEmail;
+}
 
-// Инициализация Firebase
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Загрузка данных пользователя из базы
+export async function loadUserData(email) {
+    if (!email) return null;
+    const users = await getUsersFromDB();
+    return users[email] || null;
+}
 
-// Определение текущей страницы и инициализация соответствующего модуля
+// Обновление данных пользователя
+export async function updateUserData(userData) {
+    if (!userData || !userData.email) return false;
+    await saveUserToDB(userData);
+    currentUserData = userData;
+    return true;
+}
+
+// Выход пользователя
+export function logoutUser() {
+    localStorage.removeItem('qmath_current_user');
+    currentUserEmail = null;
+    currentUserData = null;
+}
+
+// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     const page = path.split('/').pop() || 'index.html';
     
-    if (page.includes('game_math.html') || page.includes('game_phys.html')) {
+    if (page.includes('auth.html')) {
+        // Инициализация страницы авторизации
+        import('./auth.js').then(module => {
+            if (module.initAuthPage) {
+                module.initAuthPage();
+            }
+            console.log('Модуль авторизации загружен');
+        }).catch(error => {
+            console.error('Ошибка загрузки модуля авторизации:', error);
+        });
+    } else if (page.includes('game_math.html') || page.includes('game_phys.html')) {
         // Инициализация игровой логики
         import('./game.js').then(module => {
             console.log('Игровой модуль загружен');
@@ -33,6 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (page.includes('home.html')) {
         // Инициализация главной страницы
         import('./home.js').then(module => {
+            if (module.initHomePage) {
+                module.initHomePage();
+            }
             console.log('Модуль главной страницы загружен');
         }).catch(error => {
             console.error('Ошибка загрузки модуля главной страницы:', error);
@@ -40,6 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (page.includes('profile.html')) {
         // Инициализация страницы профиля
         import('./profile.js').then(module => {
+            if (module.initProfilePage) {
+                const email = getCurrentUser();
+                loadUserData(email).then(userData => {
+                    module.initProfilePage(userData);
+                });
+            }
             console.log('Модуль профиля загружен');
         }).catch(error => {
             console.error('Ошибка загрузки модуля профиля:', error);

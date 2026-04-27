@@ -1,3 +1,4 @@
+// Модуль аутентификации для работы с локальной базой данных IndexedDB
 import { getUsersFromDB, saveUserToDB } from './storage.js';
 
 export async function registerUser(email, password) {
@@ -46,6 +47,17 @@ export function initAuthPage() {
             showAuthMessage('Заполните все поля', true);
             return;
         }
+        // Валидация email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showAuthMessage('Введите корректный email', true);
+            return;
+        }
+        // Валидация пароля (минимум 4 символа)
+        if (password.length < 4) {
+            showAuthMessage('Пароль должен содержать минимум 4 символа', true);
+            return;
+        }
         if (await loginUser(email, password)) {
             localStorage.setItem('qmath_current_user', email);
             window.location.href = 'home.html';
@@ -60,6 +72,17 @@ export function initAuthPage() {
         const password = authPassword.value.trim();
         if (!email || !password) {
             showAuthMessage('Заполните все поля', true);
+            return;
+        }
+        // Валидация email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showAuthMessage('Введите корректный email', true);
+            return;
+        }
+        // Валидация пароля (минимум 4 символа)
+        if (password.length < 4) {
+            showAuthMessage('Пароль должен содержать минимум 4 символа', true);
             return;
         }
         if (await registerUser(email, password)) {
