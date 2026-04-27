@@ -1,315 +1,333 @@
-import { tasksMath, tasksMathLoaded, tasksPhys, tasksPhysLoaded } from './tasks.js';
-import { saveUserToDB, getUsersFromDB } from './storage.js';
+import { db, auth } from './firebase-config.js';
+import { doc, getDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
+import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
 
-async function updateUserInDB(email, newData) {
-    const users = await getUsersFromDB();
-    const user = users[email];
-    if (!user) throw new Error('User not found');
-    const updated = { ...user, ...newData };
-    await saveUserToDB({ email, ...updated });
-    return { email, ...updated };
+let currentUser = null;
+let currentProblem = null;
+let score = 0;
+let isDrawerOpen = false;
+let canvas, ctx;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let currentColor = '#000000';
+let isEraser = false;
+let brushSize = 3;
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    initAuth();
+    initCanvas();
+    initButtons();
+    loadNewProblem();
+});
+
+// Инициализация аутентификации
+function initAuth() {
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            currentUser = user;
+            document.getElementById('greeting').textContent = `Привет, ${user.displayName || 'Ученик'}!`;
+            loadUserScore();
+        } else {
+            window.location.href = 'login.html';
+        }
+    });
 }
 
-function getRank(score) {
-    if (score < 100) return 'Новичок';
-    if (score < 300) return 'Ученик';
-    if (score < 600) return 'Знаток';
-    return 'Математик';
+// Загрузка счета пользователя
+async function loadUserScore() {
+    if (!currentUser) return;
+    
+    try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            score = userData.score || 0;
+            updateScoreDisplay();
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки счета:', error);
+    }
 }
 
-function initGame(tasks, tasksLoaded, subject, initialUser) {
-    const gameScoreSpan = document.getElementById('gameScore');
-    const exampleImg = document.getElementById('exampleImg');
-    const answerInput = document.getElementById('answerInput');
+// Обновление отображения счета
+function updateScoreDisplay() {
+    document.getElementById('gameScore').innerHTML = `<i class="fas fa-star"></i> ${score} баллов`;
+}
+
+// Инициализация холста для рисования
+function initCanvas() {
+    canvas = document.getElementById('drawCanvas');
+    if (!canvas) return;
+    
+    ctx = canvas.getContext('2d');
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = brushSize;
+    
+    // Обработчики событий для рисования
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    
+    // Поддержка сенсорных устройств
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', stopDrawing);
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(e.offsetX, e.offsetY);
+    ctx.stroke();
+    
+    [lastX, lastY] = [e.offsetX, e.offsetY];
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    isDrawing = true;
+    [lastX, lastY] = [x, y];
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    if (!isDrawing) return;
+    
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    [lastX, lastY] = [x, y];
+}
+
+// Инициализация кнопок
+function initButtons() {
+    // Кнопка проверки ответа
     const checkBtn = document.getElementById('checkBtn');
+    if (checkBtn) {
+        checkBtn.addEventListener('click', checkAnswer);
+    }
+    
+    // Кнопка пропуска
     const skipBtn = document.getElementById('skipBtn');
-    const gameMessage = document.getElementById('gameMessage');
-
-    const drawerPanel = document.getElementById('drawerPanel');
+    if (skipBtn) {
+        skipBtn.addEventListener('click', loadNewProblem);
+    }
+    
+    // Кнопка "На главную"
+    const homeBtn = document.getElementById('homeBtn');
+    if (homeBtn) {
+        homeBtn.addEventListener('click', goToHome);
+    }
+    
+    // Кнопки управления доской
     const toggleDrawerBtn = document.getElementById('toggleDrawerBtn');
     const closeDrawerBtn = document.getElementById('closeDrawerBtn');
-    const drawCanvas = document.getElementById('drawCanvas');
-    const clearCanvasBtn = document.getElementById('clearCanvasBtn');
-    const colorBtns = document.querySelectorAll('.color-btn');
-    const eraserBtn = document.getElementById('eraserBtn');
-
-    if (!gameScoreSpan || !exampleImg || !answerInput || !checkBtn || !skipBtn || !gameMessage ||
-        !drawerPanel || !toggleDrawerBtn || !closeDrawerBtn || !drawCanvas || !clearCanvasBtn || !eraserBtn) {
-        console.error('Не найден один из обязательных элементов');
-        return;
+    
+    if (toggleDrawerBtn) {
+        toggleDrawerBtn.addEventListener('click', toggleDrawer);
     }
-
-    let currentUser = initialUser;
-    let currentTaskIndex = 0;
-    let answerLocked = false;
-
-    let ctx = null;
-    let isDrawing = false;
-    let lastX = 0, lastY = 0;
-    let currentColor = '#000000';
-    let eraserMode = false;
-
-    const refreshUI = () => {
-        gameScoreSpan.textContent = `${currentUser.score} баллов`;
-    };
-
-    const showGameMessage = (text, isError = false) => {
-        gameMessage.textContent = text;
-        gameMessage.classList.remove('hidden');
-        if (isError) gameMessage.classList.add('error');
-        else gameMessage.classList.remove('error');
-        setTimeout(() => gameMessage.classList.add('hidden'), 3000);
-    };
-
-    const loadRandomTask = () => {
-        if (!tasksLoaded || tasks.length === 0) {
-            exampleImg.src = '';
-            exampleImg.alt = 'Задачи не загружены';
-            return;
-        }
-
-        const solvedSet = new Set(currentUser.solvedTasks);
-        const unsolvedTasks = tasks.filter(task => !solvedSet.has(task.id));
-
-        if (unsolvedTasks.length === 0) {
-            exampleImg.src = '';
-            exampleImg.alt = `🎉 Поздравляем! Вы решили все задачи по ${subject === 'math' ? 'математике' : 'физике'}!`;
-            answerInput.disabled = true;
-            checkBtn.disabled = true;
-            skipBtn.disabled = true;
-            showGameMessage(`🎉 Поздравляем! Вы решили все доступные задачи по ${subject === 'math' ? 'математике' : 'физике'}!`);
-            return;
-        }
-
-        const randomIndex = Math.floor(Math.random() * unsolvedTasks.length);
-        const task = unsolvedTasks[randomIndex];
-        currentTaskIndex = tasks.findIndex(t => t.id === task.id);
-
-        exampleImg.src = task.image;
-        exampleImg.alt = `Пример ${task.id}`;
-        answerInput.value = '';
-        gameMessage.classList.add('hidden');
-        answerLocked = false;
-        checkBtn.disabled = false;
-        checkBtn.style.opacity = '1';
-        checkBtn.style.pointerEvents = 'auto';
-        answerInput.disabled = false;
-        skipBtn.disabled = false;
-    };
-
-    const checkAnswer = async () => {
-        if (!tasksLoaded || tasks.length === 0) {
-            showGameMessage('Задачи ещё не загружены', true);
-            return;
-        }
-        if (answerLocked) {
-            showGameMessage('Вы уже ответили на этот пример', true);
-            return;
-        }
-
-        const task = tasks[currentTaskIndex];
-        const userAnswer = parseFloat(answerInput.value);
-        if (isNaN(userAnswer)) {
-            showGameMessage('Введите число!', true);
-            return;
-        }
-
-        const isCorrect = (userAnswer === task.answer);
-        const newTotal = currentUser.totalAnswered + 1;
-        let newSolved = currentUser.solved;
-        let newScore = currentUser.score;
-        const newSolvedTasks = [...currentUser.solvedTasks];
-
-        if (isCorrect) {
-            newSolved += 1;
-            newScore += subject === 'math' ? 10 : 15;
-            if (!newSolvedTasks.includes(task.id)) {
-                newSolvedTasks.push(task.id);
-            }
-            showGameMessage(`✅ Верно! +${subject === 'math' ? 10 : 15} баллов`);
-            answerLocked = true;
-            checkBtn.disabled = true;
-            checkBtn.style.opacity = '0.5';
-            checkBtn.style.pointerEvents = 'none';
-
-            const rank = getRank(newScore);
-            currentUser = await updateUserInDB(currentUser.email, {
-                solved: newSolved,
-                totalAnswered: newTotal,
-                score: newScore,
-                solvedTasks: newSolvedTasks,
-                rank
-            });
-            refreshUI();
-
-            setTimeout(() => loadRandomTask(), 1500);
-        } else {
-            showGameMessage('❌ Неверно, попробуй ещё раз', true);
-            currentUser = await updateUserInDB(currentUser.email, {
-                totalAnswered: newTotal
-            });
-            refreshUI();
-        }
-    };
-
-    const skipTask = () => {
-        loadRandomTask();
-        showGameMessage('⏭ Задача пропущена');
-    };
-
-    // Canvas functions
-    const initCanvas = () => {
-        if (drawCanvas) {
-            ctx = drawCanvas.getContext('2d');
-            if (ctx) {
-                ctx.lineWidth = 3;
-                ctx.lineCap = 'round';
-                ctx.strokeStyle = currentColor;
-                ctx.globalCompositeOperation = 'source-over';
-            }
-        }
-    };
-
-    const getCanvasCoordinates = (e) => {
-        if (!drawCanvas) return null;
-        const rect = drawCanvas.getBoundingClientRect();
-        const scaleX = drawCanvas.width / rect.width;
-        const scaleY = drawCanvas.height / rect.height;
-
-        let clientX, clientY;
-        if (e instanceof TouchEvent) {
-            if (e.touches.length === 0) return null;
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-
-        const x = (clientX - rect.left) * scaleX;
-        const y = (clientY - rect.top) * scaleY;
-        return {
-            x: Math.max(0, Math.min(drawCanvas.width, x)),
-            y: Math.max(0, Math.min(drawCanvas.height, y))
-        };
-    };
-
-    const startDrawing = (e) => {
-        e.preventDefault();
-        if (!ctx) return;
-        isDrawing = true;
-        const pos = getCanvasCoordinates(e);
-        if (pos) {
-            lastX = pos.x;
-            lastY = pos.y;
-            ctx.beginPath();
-            ctx.moveTo(lastX, lastY);
-        }
-    };
-
-    const draw = (e) => {
-        e.preventDefault();
-        if (!isDrawing || !ctx) return;
-        const pos = getCanvasCoordinates(e);
-        if (pos) {
-            ctx.lineTo(pos.x, pos.y);
-            ctx.stroke();
-            lastX = pos.x;
-            lastY = pos.y;
-        }
-    };
-
-    const stopDrawing = () => {
-        isDrawing = false;
-        if (ctx) ctx.closePath();
-    };
-
-    const setColor = (color) => {
-        currentColor = color;
-        if (ctx) {
-            ctx.strokeStyle = color;
-            ctx.globalCompositeOperation = 'source-over';
-        }
-        eraserMode = false;
-        eraserBtn.classList.remove('active');
-    };
-
-    const toggleEraser = () => {
-        if (!ctx) return;
-        eraserMode = !eraserMode;
-        eraserBtn.classList.toggle('active', eraserMode);
-        if (eraserMode) {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.lineWidth = 20;
-        } else {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.lineWidth = 3;
+    
+    if (closeDrawerBtn) {
+        closeDrawerBtn.addEventListener('click', closeDrawer);
+    }
+    
+    // Выбор цвета
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentColor = btn.dataset.color;
+            isEraser = false;
             ctx.strokeStyle = currentColor;
-        }
-    };
-
-    const clearCanvas = () => {
-        if (ctx && drawCanvas) {
-            ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
-        }
-    };
-
-    const openDrawer = () => {
-        drawerPanel.classList.add('open');
-        drawerPanel.setAttribute('aria-hidden', 'false');
-        drawCanvas.focus();
-    };
-
-    const closeDrawer = () => {
-        drawerPanel.classList.remove('open');
-        drawerPanel.setAttribute('aria-hidden', 'true');
-    };
-
-    const toggleDrawer = () => {
-        drawerPanel.classList.contains('open') ? closeDrawer() : openDrawer();
-    };
-
-    // Event listeners
-    checkBtn.addEventListener('click', checkAnswer);
-    skipBtn.addEventListener('click', skipTask);
-    answerInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') checkAnswer(); });
-    toggleDrawerBtn.addEventListener('click', toggleDrawer);
-    closeDrawerBtn.addEventListener('click', closeDrawer);
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawerPanel.classList.contains('open')) closeDrawer(); });
-
-    initCanvas();
-    drawCanvas.addEventListener('mousedown', startDrawing);
-    drawCanvas.addEventListener('mousemove', draw);
-    drawCanvas.addEventListener('mouseup', stopDrawing);
-    drawCanvas.addEventListener('mouseleave', stopDrawing);
-    drawCanvas.addEventListener('touchstart', startDrawing, { passive: false });
-    drawCanvas.addEventListener('touchmove', draw, { passive: false });
-    drawCanvas.addEventListener('touchend', stopDrawing);
-    drawCanvas.addEventListener('touchcancel', stopDrawing);
-
-    colorBtns.forEach(btn => btn.addEventListener('click', () => {
-        const color = btn.getAttribute('data-color');
-        if (color) setColor(color);
-    }));
-    eraserBtn.addEventListener('click', toggleEraser);
-    clearCanvasBtn.addEventListener('click', clearCanvas);
-
-    refreshUI();
-    loadRandomTask();
+            ctx.globalCompositeOperation = 'source-over';
+        });
+    });
+    
+    // Ластик
+    const eraserBtn = document.getElementById('eraserBtn');
+    if (eraserBtn) {
+        eraserBtn.addEventListener('click', () => {
+            isEraser = true;
+            ctx.globalCompositeOperation = 'destination-out';
+        });
+    }
+    
+    // Очистка холста
+    const clearCanvasBtn = document.getElementById('clearCanvasBtn');
+    if (clearCanvasBtn) {
+        clearCanvasBtn.addEventListener('click', clearCanvas);
+    }
+    
+    // Обработка ввода Enter в поле ответа
+    const answerInput = document.getElementById('answerInput');
+    if (answerInput) {
+        answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+    }
 }
 
-export function initGameMathPage(currentUser) {
-    if (!currentUser) {
-        window.location.href = 'auth.html';
+// Переключение видимости доски
+function toggleDrawer() {
+    const drawerPanel = document.getElementById('drawerPanel');
+    if (!drawerPanel) return;
+    
+    isDrawerOpen = !isDrawerOpen;
+    drawerPanel.setAttribute('aria-hidden', !isDrawerOpen);
+    drawerPanel.classList.toggle('open', isDrawerOpen);
+    
+    if (isDrawerOpen) {
+        resizeCanvas();
+    }
+}
+
+// Закрытие доски
+function closeDrawer() {
+    const drawerPanel = document.getElementById('drawerPanel');
+    if (!drawerPanel) return;
+    
+    isDrawerOpen = false;
+    drawerPanel.setAttribute('aria-hidden', true);
+    drawerPanel.classList.remove('open');
+}
+
+// Изменение размера холста
+function resizeCanvas() {
+    if (!canvas) return;
+    
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth;
+    canvas.height = 400;
+    
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = currentColor;
+    ctx.lineWidth = brushSize;
+}
+
+// Очистка холста
+function clearCanvas() {
+    if (!ctx || !canvas) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Загрузка новой задачи
+async function loadNewProblem() {
+    showMessage('', 'hidden');
+    document.getElementById('answerInput').value = '';
+    
+    // Здесь должна быть логика загрузки задачи из базы данных
+    // Для примера используем заглушку
+    currentProblem = {
+        id: 'temp_' + Date.now(),
+        image: 'assets/examples/math/example1.png', // Путь к изображению
+        answer: 42, // Правильный ответ
+        type: 'math' // или 'phys'
+    };
+    
+    // Обновление изображения
+    const imgElement = document.getElementById('exampleImg');
+    if (imgElement && currentProblem.image) {
+        imgElement.src = currentProblem.image;
+        imgElement.alt = currentProblem.type === 'math' ? 'Математический пример' : 'Физическая задача';
+    }
+    
+    // Фокус на поле ввода
+    document.getElementById('answerInput').focus();
+}
+
+// Проверка ответа
+async function checkAnswer() {
+    const answerInput = document.getElementById('answerInput');
+    const userAnswer = parseFloat(answerInput.value);
+    
+    if (isNaN(userAnswer)) {
+        showMessage('Пожалуйста, введите числовой ответ!', 'error');
         return;
     }
-    initGame(tasksMath, tasksMathLoaded, 'math', currentUser);
-}
-
-export function initGamePhysPage(currentUser) {
-    if (!currentUser) {
-        window.location.href = 'auth.html';
+    
+    if (!currentProblem) {
+        showMessage('Ошибка: задача не загружена', 'error');
         return;
     }
-    initGame(tasksPhys, tasksPhysLoaded, 'phys', currentUser);
+    
+    // Проверка ответа (с небольшой погрешностью для дробных чисел)
+    const isCorrect = Math.abs(userAnswer - currentProblem.answer) < 0.01;
+    
+    if (isCorrect) {
+        // Правильный ответ
+        const pointsEarned = 10;
+        score += pointsEarned;
+        updateScoreDisplay();
+        
+        // Обновление счета в базе данных
+        if (currentUser) {
+            try {
+                await updateDoc(doc(db, 'users', currentUser.uid), {
+                    score: increment(pointsEarned)
+                });
+            } catch (error) {
+                console.error('Ошибка обновления счета:', error);
+            }
+        }
+        
+        showMessage(`Правильно! +${pointsEarned} баллов`, 'success');
+        
+        // Загрузка новой задачи через небольшую паузу
+        setTimeout(loadNewProblem, 1500);
+    } else {
+        // Неправильный ответ
+        showMessage(`Неправильно. Попробуйте еще раз!`, 'error');
+    }
 }
+
+// Переход на главную страницу
+function goToHome() {
+    window.location.href = 'home.html';
+}
+
+// Отображение сообщений
+function showMessage(text, type) {
+    const messageEl = document.getElementById('gameMessage');
+    if (!messageEl) return;
+    
+    messageEl.textContent = text;
+    messageEl.className = 'message ' + type;
+    
+    if (type !== 'hidden') {
+        setTimeout(() => {
+            messageEl.className = 'message hidden';
+        }, 3000);
+    }
+}
+
+// Экспорт функций для использования в других модулях
+export { loadNewProblem, checkAnswer };
