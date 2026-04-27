@@ -302,11 +302,25 @@ async function loadNewProblem() {
     const path = window.location.pathname;
     const isMath = path.includes('game_math.html');
 
-    // Выбор случайной задачи из загруженных
-    const tasks = isMath ? tasksMath : tasksPhys;
-    if (tasks && tasks.length > 0) {
-        const randomIndex = Math.floor(Math.random() * tasks.length);
-        currentProblem = tasks[randomIndex];
+    // Получаем список решенных задач пользователя
+    const solvedTaskIds = currentUser?.solvedTasks || [];
+    
+    // Выбор случайной задачи из загруженных, исключая решенные
+    const allTasks = isMath ? tasksMath : tasksPhys;
+    
+    // Фильтруем задачи, исключая уже решенные
+    let availableTasks = allTasks.filter(task => !solvedTaskIds.includes(task.id));
+    
+    // Если все задачи решены или задачи не загружены, используем все задачи
+    if (availableTasks.length === 0) {
+        availableTasks = allTasks;
+        // Опционально: можно очистить список решенных или показать сообщение
+        console.log('Все задачи решены! Начинаем заново.');
+    }
+    
+    if (availableTasks && availableTasks.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableTasks.length);
+        currentProblem = availableTasks[randomIndex];
     } else {
         // Заглушка, если задачи не загружены
         currentProblem = {
