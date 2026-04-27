@@ -1,18 +1,29 @@
 import { getUsersFromDB, saveUserToDB } from './storage.js';
-import { login, register, logout, loadUserDataFromCloud, saveUserToCloud } from './firebase-sync.js';
 
 export async function registerUser(email, password) {
-    // Пробуем зарегистрировать через Firebase
-    const result = await register(email, password);
-    if (!result.success) {
-        console.error("Firebase registration error:", result.error);
-        return false;
+    // Валидация email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        console.error("Некорректный формат email");
+        return { success: false, error: 'Некорректный формат email' };
+    }
+    
+    // Валидация пароля (минимум 6 символов)
+    if (password.length < 6) {
+        console.error("Пароль должен содержать минимум 6 символов");
+        return { success: false, error: 'Пароль должен содержать минимум 6 символов' };
+    }
+    
+    // Проверяем, существует ли уже пользователь
+    const users = await getUsersFromDB();
+    if (users[email]) {
+        return { success: false, error: 'Пользователь с таким email уже существует' };
     }
     
     // Создаем локальную запись
     const newUser = {
         email,
-        password, // Храним локально для совместимости, но вход через Firebase
+        password, // Храним локально для простого входа
         score: 0,
         solved: 0,
         totalAnswered: 0,
@@ -21,23 +32,25 @@ export async function registerUser(email, password) {
         solvedTaskIds: [] // Массив ID решенных задач
     };
     await saveUserToDB(newUser);
-    return true;
+    return { success: true };
 }
 
 export async function loginUser(email, password) {
-    // Пробуем войти через Firebase
-    const result = await login(email, password);
-    if (!result.success) {
-        console.error("Firebase login error:", result.error);
-        return false;
+    const users = await getUsersFromDB();
+    const user = users[email];
+    
+    if (!user) {
+        return { success: false, error: 'Пользователь не найден' };
     }
     
-    // Данные загрузятся автоматически через onAuthStateChanged в firebase-sync.js
-    return true;
+    if (user.password !== password) {
+        return { success: false, error: 'Неверный пароль' };
+    }
+    
+    return { success: true };
 }
 
 export async function logoutUser() {
-    await logout();
     localStorage.removeItem('qmath_current_user');
     window.location.href = 'auth.html';
 }
@@ -69,14 +82,12 @@ export function initAuthPage() {
         }
         
         showAuthMessage('Вход...');
-        if (await loginUser(email, password)) {
+        const loginResult = await loginUser(email, password);
+        if (loginResult.success) {
             localStorage.setItem('qmath_current_user', email);
-            // Небольшая задержка для загрузки данных из облака
-            setTimeout(() => {
-                window.location.href = 'home.html';
-            }, 500);
+            window.location.href = 'home.html';
         } else {
-            showAuthMessage('Неверный email или пароль', true);
+            showAuthMessage(loginResult.error || 'Неверный email или пароль', true);
         }
     });
 
@@ -90,12 +101,13 @@ export function initAuthPage() {
         }
         
         showAuthMessage('Регистрация...');
-        if (await registerUser(email, password)) {
+        const registerResult = await registerUser(email, password);
+        if (registerResult.success) {
             showAuthMessage('Регистрация успешна! Теперь войдите.');
             authEmail.value = '';
             authPassword.value = '';
         } else {
-            showAuthMessage('Ошибка регистрации или пользователь уже существует', true);
+            showAuthMessage(registerResult.error || 'Ошибка регистрации или пользователь уже существует', true);
         }
     });
 }
