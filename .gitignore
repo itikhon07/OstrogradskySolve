@@ -1,3 +1,1 @@
-```html
-
-```
+Nothing should be ignored based on the provided file changes. The changes only include JavaScript source files (.js) which are legitimate source code files that should not be ignored.
