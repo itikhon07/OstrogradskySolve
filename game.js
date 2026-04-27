@@ -1,6 +1,9 @@
-import { db, auth } from './firebase-config.js';
-import { doc, getDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js';
+// Игровой модуль для математики и физики
+// Все данные хранятся локально через IndexedDB
+
+import { getCurrentUser, loadUserData, updateUserData } from './main.js';
+import { saveUserToDB } from './storage.js';
+import { tasksMath, tasksPhys, loadTasksMath, loadTasksPhys } from './tasks.js';
 
 let currentUser = null;
 let currentProblem = null;
@@ -15,7 +18,11 @@ let isEraser = false;
 let brushSize = 3;
 
 // Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Загрузка задач
+    await loadTasksMath();
+    await loadTasksPhys();
+    
     initAuth();
     initCanvas();
     initButtons();
@@ -23,31 +30,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Инициализация аутентификации
-function initAuth() {
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            currentUser = user;
-            document.getElementById('greeting').textContent = `Привет, ${user.displayName || 'Ученик'}!`;
-            loadUserScore();
-        } else {
-            window.location.href = 'login.html';
-        }
-    });
-}
-
-// Загрузка счета пользователя
-async function loadUserScore() {
-    if (!currentUser) return;
-    
-    try {
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            score = userData.score || 0;
+async function initAuth() {
+    const email = getCurrentUser();
+    if (email) {
+        currentUser = await loadUserData(email);
+        if (currentUser) {
+            document.getElementById('greeting').textContent = `Привет, ${email.split('@')[0]}!`;
+            score = currentUser.score || 0;
             updateScoreDisplay();
+        } else {
+            window.location.href = 'auth.html';
         }
-    } catch (error) {
-        console.error('Ошибка загрузки счета:', error);
+    } else {
+        window.location.href = 'auth.html';
     }
 }
 
@@ -244,14 +239,24 @@ async function loadNewProblem() {
     showMessage('', 'hidden');
     document.getElementById('answerInput').value = '';
     
-    // Здесь должна быть логика загрузки задачи из базы данных
-    // Для примера используем заглушку
-    currentProblem = {
-        id: 'temp_' + Date.now(),
-        image: 'assets/examples/math/example1.png', // Путь к изображению
-        answer: 42, // Правильный ответ
-        type: 'math' // или 'phys'
-    };
+    // Определение типа задачи из URL
+    const path = window.location.pathname;
+    const isMath = path.includes('game_math.html');
+    
+    // Выбор случайной задачи из загруженных
+    const tasks = isMath ? tasksMath : tasksPhys;
+    if (tasks && tasks.length > 0) {
+        const randomIndex = Math.floor(Math.random() * tasks.length);
+        currentProblem = tasks[randomIndex];
+    } else {
+        // Заглушка, если задачи не загружены
+        currentProblem = {
+            id: 'temp_' + Date.now(),
+            image: isMath ? 'assets/images/examples_math/1.png' : 'assets/images/examples_phys/1.png',
+            answer: isMath ? 0.368 : 10,
+            type: isMath ? 'math' : 'phys'
+        };
+    }
     
     // Обновление изображения
     const imgElement = document.getElementById('exampleImg');
@@ -288,12 +293,23 @@ async function checkAnswer() {
         score += pointsEarned;
         updateScoreDisplay();
         
-        // Обновление счета в базе данных
+        // Обновление данных пользователя локально
         if (currentUser) {
             try {
-                await updateDoc(doc(db, 'users', currentUser.uid), {
-                    score: increment(pointsEarned)
-                });
+                currentUser.score = (currentUser.score || 0) + pointsEarned;
+                currentUser.solved = (currentUser.solved || 0) + 1;
+                currentUser.totalAnswered = (currentUser.totalAnswered || 0) + 1;
+                
+                // Добавляем задачу в список решенных
+                if (!currentUser.solvedTasks) {
+                    currentUser.solvedTasks = [];
+                }
+                if (!currentUser.solvedTasks.includes(currentProblem.id)) {
+                    currentUser.solvedTasks.push(currentProblem.id);
+                }
+                
+                // Сохраняем обновленные данные в IndexedDB
+                await saveUserToDB(currentUser);
             } catch (error) {
                 console.error('Ошибка обновления счета:', error);
             }
@@ -305,6 +321,10 @@ async function checkAnswer() {
         setTimeout(loadNewProblem, 1500);
     } else {
         // Неправильный ответ
+        if (currentUser) {
+            currentUser.totalAnswered = (currentUser.totalAnswered || 0) + 1;
+            await saveUserToDB(currentUser);
+        }
         showMessage(`Неправильно. Попробуйте еще раз!`, 'error');
     }
 }
