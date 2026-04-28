@@ -655,6 +655,73 @@ body {
     background: #e2e8f0;
 }
 
+/* Дополнительные стили для инструментов доски */
+.drawer-tools-secondary {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.tool-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+}
+
+.tool-label {
+    font-weight: 500;
+    color: #2c3e66;
+    font-size: 0.9rem;
+}
+
+.brush-size-slider {
+    width: 150px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #e2e8f0;
+    border-radius: 3px;
+    outline: none;
+}
+
+.brush-size-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #2c3e66;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.brush-size-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #2c3e66;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.brush-size-value {
+    font-weight: 600;
+    color: #2c3e66;
+    min-width: 24px;
+    text-align: center;
+}
+
+.drawer-tools-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.action-btn {
+    min-width: 50px;
+    font-size: 1rem;
+}
+
 /* Страница профиля */
 .profile-page {
     flex: 1;
@@ -781,6 +848,14 @@ body.math-theme .clear-btn:hover {
 body.math-theme .tool-btn.active {
     background: #fde6cf;
 }
+body.math-theme .action-btn {
+    background: #fef3e2;
+    color: #e67e22;
+    border-color: #fde6cf;
+}
+body.math-theme .action-btn:hover {
+    background: #ffe0b3;
+}
 /* Кнопка пропуска в математике — светлый фон, оранжевый текст */
 body.math-theme .btn-skip {
     background: #fefaf5;
@@ -843,6 +918,14 @@ body.phys-theme .clear-btn:hover {
     background: #e9d9ff;
 }
 body.phys-theme .tool-btn.active {
+    background: #e9d9ff;
+}
+body.phys-theme .action-btn {
+    background: #f3e8ff;
+    color: #8e44ad;
+    border-color: #e9d9ff;
+}
+body.phys-theme .action-btn:hover {
     background: #e9d9ff;
 }
 /* Кнопка пропуска в физике — светлый фон, фиолетовый текст */
