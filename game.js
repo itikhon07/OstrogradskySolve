@@ -17,7 +17,7 @@ let lastX = 0;
 let lastY = 0;
 let currentColor = '#000000';
 let isEraser = false;
-let brushSize = 2;
+let brushSize = 5;
 
 // Получение текущего пользователя
 function getCurrentUserEmail() {
@@ -294,11 +294,11 @@ function resizeCanvas() {
     
     // Устанавливаем размер равным CSS-размерам (без DPR)
     canvas.width = rect.width;
-    canvas.height = 400;
+    canvas.height = 1200;
     
     // CSS размеры
     canvas.style.width = rect.width + 'px';
-    canvas.style.height = '400px';
+    canvas.style.height = '1200px';
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
