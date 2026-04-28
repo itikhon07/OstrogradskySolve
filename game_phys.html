@@ -48,7 +48,19 @@
                 <button class="color-btn" data-color="#00ff00" style="background:#00ff00;" aria-label="Зелёный"></button>
                 <button class="color-btn" data-color="#ffff00" style="background:#ffff00;" aria-label="Жёлтый"></button>
                 <button class="tool-btn" id="eraserBtn" title="Ластик"><i class="fas fa-eraser"></i></button>
-                <button class="clear-btn" id="clearCanvasBtn"><i class="fas fa-eraser"></i> Очистить</button>
+            </div>
+            <div class="drawer-tools drawer-tools-secondary">
+                <div class="tool-group">
+                    <label for="brushSizeSlider" class="tool-label">Толщина:</label>
+                    <input type="range" id="brushSizeSlider" min="1" max="20" value="5" class="brush-size-slider">
+                    <span id="brushSizeValue" class="brush-size-value">5</span>
+                </div>
+            </div>
+            <div class="drawer-tools drawer-tools-actions">
+                <button class="tool-btn action-btn" id="undoBtn" title="Отменить"><i class="fas fa-undo"></i></button>
+                <button class="tool-btn action-btn" id="downloadBtn" title="Скачать"><i class="fas fa-download"></i></button>
+                <button class="tool-btn action-btn" id="resizeBtn" title="Изменить высоту"><i class="fas fa-expand-alt"></i></button>
+                <button class="clear-btn" id="clearCanvasBtn"><i class="fas fa-trash"></i> Очистить</button>
             </div>
         </div>
 

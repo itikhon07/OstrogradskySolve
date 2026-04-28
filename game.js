@@ -18,6 +18,9 @@ let lastY = 0;
 let currentColor = '#000000';
 let isEraser = false;
 let brushSize = 5;
+let canvasHeight = 1200;
+let undoStack = [];
+const MAX_UNDO = 30;
 
 // Получение текущего пользователя
 function getCurrentUserEmail() {
@@ -135,6 +138,10 @@ function initCanvas() {
     canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', stopDrawing, { passive: false });
+    
+    // Сохраняем состояние перед началом рисования
+    canvas.addEventListener('mousedown', saveState);
+    canvas.addEventListener('touchstart', saveState, { passive: false });
 }
 
 function startDrawing(e) {
@@ -173,6 +180,17 @@ function handleTouchStart(e) {
     ctx.moveTo(x, y);
     ctx.lineTo(x + 0.1, y + 0.1);
     ctx.stroke();
+}
+
+function saveState() {
+    if (!canvas || undoStack.length >= MAX_UNDO) {
+        if (undoStack.length >= MAX_UNDO) {
+            undoStack.shift(); // Удаляем самое старое состояние
+        }
+    }
+    if (canvas) {
+        undoStack.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+    }
 }
 
 function handleTouchMove(e) {
@@ -247,7 +265,39 @@ function initButtons() {
     // Очистка холста
     const clearCanvasBtn = document.getElementById('clearCanvasBtn');
     if (clearCanvasBtn) {
-        clearCanvasBtn.addEventListener('click', clearCanvas);
+        clearCanvasBtn.addEventListener('click', () => {
+            saveState();
+            clearCanvas();
+        });
+    }
+    
+    // Ползунок толщины кисти
+    const brushSizeSlider = document.getElementById('brushSizeSlider');
+    const brushSizeValue = document.getElementById('brushSizeValue');
+    if (brushSizeSlider && brushSizeValue) {
+        brushSizeSlider.addEventListener('input', () => {
+            brushSize = parseInt(brushSizeSlider.value);
+            brushSizeValue.textContent = brushSize;
+            ctx.lineWidth = brushSize;
+        });
+    }
+    
+    // Кнопка отмены
+    const undoBtn = document.getElementById('undoBtn');
+    if (undoBtn) {
+        undoBtn.addEventListener('click', undo);
+    }
+    
+    // Кнопка скачивания
+    const downloadBtn = document.getElementById('downloadBtn');
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadCanvas);
+    }
+    
+    // Кнопка изменения высоты
+    const resizeBtn = document.getElementById('resizeBtn');
+    if (resizeBtn) {
+        resizeBtn.addEventListener('click', toggleCanvasHeight);
     }
 
     // Обработка ввода Enter в поле ответа
@@ -294,16 +344,61 @@ function resizeCanvas() {
     
     // Устанавливаем размер равным CSS-размерам (без DPR)
     canvas.width = rect.width;
-    canvas.height = 1200;
+    canvas.height = canvasHeight;
     
     // CSS размеры
     canvas.style.width = rect.width + 'px';
-    canvas.style.height = '1200px';
+    canvas.style.height = canvasHeight + 'px';
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = currentColor;
     ctx.lineWidth = brushSize;
+}
+
+// Функция изменения высоты холста
+function toggleCanvasHeight() {
+    if (canvasHeight === 1200) {
+        canvasHeight = Math.max(window.innerHeight * 1.5, 2000);
+    } else if (canvasHeight === Math.max(window.innerHeight * 1.5, 2000)) {
+        canvasHeight = 3000;
+    } else {
+        canvasHeight = 1200;
+    }
+    saveState();
+    resizeCanvas();
+}
+
+// Функция отмены последнего действия
+function undo() {
+    if (undoStack.length > 0 && canvas && ctx) {
+        const lastState = undoStack.pop();
+        ctx.putImageData(lastState, 0, 0);
+    }
+}
+
+// Функция скачивания холста
+function downloadCanvas() {
+    if (!canvas) return;
+    
+    // Создаем временный canvas с белым фоном
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Рисуем белый фон
+    tempCtx.fillStyle = '#ffffff';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Копируем содержимое основного canvas
+    tempCtx.drawImage(canvas, 0, 0);
+    
+    // Скачиваем как PNG
+    const link = document.createElement('a');
+    link.download = 'drawing_' + Date.now() + '.png';
+    link.href = tempCanvas.toDataURL('image/png');
+    link.click();
 }
 
 // Очистка холста
