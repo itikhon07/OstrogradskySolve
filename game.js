@@ -17,7 +17,7 @@ let lastX = 0;
 let lastY = 0;
 let currentColor = '#000000';
 let isEraser = false;
-let brushSize = 3;
+let brushSize = 2;
 
 // Получение текущего пользователя
 function getCurrentUserEmail() {
@@ -116,6 +116,10 @@ function initCanvas() {
     if (!canvas) return;
 
     ctx = canvas.getContext('2d');
+    
+    // Устанавливаем размер при инициализации
+    resizeCanvas();
+    
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = currentColor;
@@ -157,8 +161,10 @@ function handleTouchStart(e) {
     e.preventDefault();
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
+    // Учитываем масштаб DPR при вычислении координат
+    const dpr = window.devicePixelRatio || 1;
+    const x = (touch.clientX - rect.left) * dpr;
+    const y = (touch.clientY - rect.top) * dpr;
 
     isDrawing = true;
     [lastX, lastY] = [x, y];
@@ -166,7 +172,7 @@ function handleTouchStart(e) {
     // Рисуем точку в месте касания
     ctx.beginPath();
     ctx.moveTo(x, y);
-    ctx.lineTo(x, y);
+    ctx.lineTo(x + 0.1, y + 0.1);
     ctx.stroke();
 }
 
@@ -176,8 +182,10 @@ function handleTouchMove(e) {
 
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
+    // Учитываем масштаб DPR при вычислении координат
+    const dpr = window.devicePixelRatio || 1;
+    const x = (touch.clientX - rect.left) * dpr;
+    const y = (touch.clientY - rect.top) * dpr;
 
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
@@ -284,8 +292,19 @@ function resizeCanvas() {
     if (!canvas) return;
 
     const container = canvas.parentElement;
-    canvas.width = container.clientWidth;
-    canvas.height = 400;
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Устанавливаем размер с учетом DPR для четкости на мобильных
+    canvas.width = rect.width * dpr;
+    canvas.height = 400 * dpr;
+    
+    // Масштабируем контекст
+    ctx.scale(dpr, dpr);
+    
+    // CSS размеры
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = '400px';
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
