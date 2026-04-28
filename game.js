@@ -161,10 +161,9 @@ function handleTouchStart(e) {
     e.preventDefault();
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    // Учитываем масштаб DPR при вычислении координат
-    const dpr = window.devicePixelRatio || 1;
-    const x = (touch.clientX - rect.left) * dpr;
-    const y = (touch.clientY - rect.top) * dpr;
+    // Используем CSS-координаты без умножения на dpr
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
 
     isDrawing = true;
     [lastX, lastY] = [x, y];
@@ -182,10 +181,9 @@ function handleTouchMove(e) {
 
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
-    // Учитываем масштаб DPR при вычислении координат
-    const dpr = window.devicePixelRatio || 1;
-    const x = (touch.clientX - rect.left) * dpr;
-    const y = (touch.clientY - rect.top) * dpr;
+    // Используем CSS-координаты без умножения на dpr
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
 
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
@@ -293,14 +291,10 @@ function resizeCanvas() {
 
     const container = canvas.parentElement;
     const rect = container.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     
-    // Устанавливаем размер с учетом DPR для четкости на мобильных
-    canvas.width = rect.width * dpr;
-    canvas.height = 400 * dpr;
-    
-    // Масштабируем контекст
-    ctx.scale(dpr, dpr);
+    // Устанавливаем размер равным CSS-размерам (без DPR)
+    canvas.width = rect.width;
+    canvas.height = 400;
     
     // CSS размеры
     canvas.style.width = rect.width + 'px';
