@@ -556,6 +556,11 @@ body {
 .drawer-panel.open {
     display: block;
 }
+.drawer-canvas-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
 .drawer-header {
     display: flex;
     justify-content: space-between;
@@ -588,6 +593,10 @@ body {
     background: #f8fafc;
     border-radius: 6px;
     border: 1px solid #e2e8f0;
+}
+
+#drawCanvas {
+    display: block;
 }
 
 /* Кнопки инструментов доски */

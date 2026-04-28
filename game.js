@@ -121,16 +121,16 @@ function initCanvas() {
     ctx.strokeStyle = currentColor;
     ctx.lineWidth = brushSize;
 
-    // Обработчики событий для рисования
+    // Обработчики событий для рисования (мышь)
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
 
-    // Поддержка сенсорных устройств
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
-    canvas.addEventListener('touchend', stopDrawing);
+    // Поддержка сенсорных устройств с passive: false для preventDefault
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing, { passive: false });
 }
 
 function startDrawing(e) {
@@ -162,6 +162,12 @@ function handleTouchStart(e) {
 
     isDrawing = true;
     [lastX, lastY] = [x, y];
+    
+    // Рисуем точку в месте касания
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
 }
 
 function handleTouchMove(e) {
