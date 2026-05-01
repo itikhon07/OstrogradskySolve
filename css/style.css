@@ -1004,3 +1004,68 @@ body.phys-theme .bonus-info strong {
         display: none;
     }
 }
+
+/* ===== ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ ===== */
+body.accessibility-mode {
+    background: #000000 !important;
+}
+
+body.accessibility-mode #app {
+    background: #000000 !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: none !important;
+}
+
+body.accessibility-mode .top-bar {
+    border-bottom: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .greeting,
+body.accessibility-mode .home-screen h2,
+body.accessibility-mode .home-screen p,
+body.accessibility-mode .profile-link,
+body.accessibility-mode .back-link {
+    color: #ffffff !important;
+}
+
+body.accessibility-mode .btn-accessibility {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #ffffff !important;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
+    padding: 16px 24px !important;
+}
+
+body.accessibility-mode .btn-accessibility:hover {
+    background: #ffff00 !important;
+    color: #000000 !important;
+}
+
+body.accessibility-mode .btn,
+body.accessibility-mode .start-btn {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #ffffff !important;
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+}
+
+body.accessibility-mode .btn:hover,
+body.accessibility-mode .start-btn:hover {
+    background: #ffff00 !important;
+    color: #000000 !important;
+}
+
+body.accessibility-mode .profile-link,
+body.accessibility-mode .back-link {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .profile-link:hover,
+body.accessibility-mode .back-link:hover {
+    background: #ffff00 !important;
+    color: #000000 !important;
+}

@@ -40,6 +40,7 @@ export async function initHomePage() {
 
     const startMathBtn = document.getElementById('startMathBtn');
     const startPhysBtn = document.getElementById('startPhysBtn');
+    const accessibilityBtn = document.getElementById('accessibilityBtn');
 
     startMathBtn?.addEventListener('click', () => {
         window.location.href = 'game_math.html';
@@ -47,5 +48,9 @@ export async function initHomePage() {
 
     startPhysBtn?.addEventListener('click', () => {
         window.location.href = 'game_phys.html';
+    });
+
+    accessibilityBtn?.addEventListener('click', () => {
+        document.body.classList.toggle('accessibility-mode');
     });
 }
