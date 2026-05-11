@@ -21,19 +21,7 @@
 
 ### Установка
 
-1. Клонируйте репозиторий:
-```bash
-git clone <repository-url>
-cd OstrogradskySolve
-```
-
-2. Откройте `auth.html` в браузере или используйте локальный сервер:
-```bash
-# Например, с помощью Python
-python -m http.server 8000
-```
-
-3. Перейдите по адресу `http://localhost:8000/auth.html`
+https://itikhon07.github.io/OstrogradskySolve/auth.html
 
 ### Первое использование
 
@@ -41,29 +29,6 @@ python -m http.server 8000
 2. Войдите в систему
 3. Выберите предмет (математика или физика)
 4. Решайте задачи и зарабатывайте баллы!
-
-## 📁 Структура проекта
-
-```
-OstrogradskySolve/
-├── index.html              # Точка входа (перенаправление на auth.html)
-├── auth.html               # Страница авторизации/регистрации
-├── home.html               # Главная страница
-├── game_math.html          # Игра по математике
-├── game_phys.html          # Игра по физике
-├── profile.html            # Профиль пользователя
-├── css/
-│   └── style.css           # Основные стили и темы
-├── assets/
-│   └── images/             # Изображения для задач
-├── data/
-│   ├── answers_math.txt    # Ответы на задачи по математике
-│   ├── answers_phys.txt    # Ответы на задачи по физике
-│   └── users.json          # Данные пользователей (резервное хранение)
-├── *.js                    # Модули приложения
-├── manifest.json           # PWA манифест
-└── sw.js                   # Service Worker
-```
 
 ## 🎨 Темы оформления
 
@@ -90,7 +55,7 @@ OstrogradskySolve/
 | Любитель | 100–299 |
 | Профессионал | 300–599 |
 | Эксперт | 600–999 |
-| Мастер | 1000+ |
+| Математик | 1000+ |
 
 ## 💡 Бонусные баллы
 
@@ -99,7 +64,7 @@ OstrogradskySolve/
 1. **20 баллов** — своя или найденная интересная задача с решением и ответом
 2. **15 баллов** — исправленная ошибка в задаче
 
-Пишите на почту: [IlyaDev@ostrogradsky.com](mailto:IlyaDev@ostrogradsky.com)
+Пишите на почту: [itikhon07@mail.ru](mailto:itikhon07@mail.ru)
 
 ## 🛠 Технологии
 
@@ -121,8 +86,9 @@ OstrogradskySolve/
 
 ## 👥 Авторы
 
+Тихончик Илья, Физико-технический факультет
 Разработано в честь Михаила Васильевича Остроградского
 
 ## 📞 Контакты
 
-По вопросам и предложениям: [IlyaDev@ostrogradsky.com](mailto:IlyaDev@ostrogradsky.com)
+По вопросам и предложениям: [itikhon07@mail.ru](mailto:itikhon07@mail.ru)
