@@ -40,6 +40,12 @@ export async function initProfilePage() {
     const scoreEl = document.getElementById('profileScore');
     const greetingEl = document.getElementById('greeting');
     const logoutBtn = document.getElementById('logoutBtn');
+    const accessibilityBtn = document.getElementById('accessibilityBtn');
+
+    // Обработчик кнопки версии для слабовидящих
+    accessibilityBtn?.addEventListener('click', () => {
+        document.body.classList.toggle('accessibility-mode');
+    });
 
     // Защита от XSS - экранирование email
     const escapeHtml = (text) => {

@@ -309,6 +309,14 @@ function initButtons() {
             }
         });
     }
+
+    // Кнопка версии для слабовидящих
+    const accessibilityBtn = document.getElementById('accessibilityBtn');
+    if (accessibilityBtn) {
+        accessibilityBtn.addEventListener('click', () => {
+            document.body.classList.toggle('accessibility-mode');
+        });
+    }
 }
 
 // Переключение видимости доски
