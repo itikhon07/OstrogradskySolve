@@ -94,7 +94,7 @@ async function initAuth() {
     if (email) {
         currentUser = await loadUserData(email);
         if (currentUser) {
-            document.getElementById('greeting').textContent = `Привет, ${email.split('@')[0]}!`;
+            document.getElementById('greeting').textContent = email.split('@')[0];
             score = currentUser.score || 0;
             updateScoreDisplay();
             return true; // Пользователь успешно загружен

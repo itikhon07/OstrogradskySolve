@@ -56,7 +56,7 @@ export async function initProfilePage() {
 
     // Обновление приветствия в верхней панели
     if (greetingEl) {
-        greetingEl.textContent = `Привет, ${currentUser.email.split('@')[0]}!`;
+        greetingEl.textContent = `${currentUser.email.split('@')[0]}`;
     }
 
     if (emailEl) emailEl.textContent = escapeHtml(currentUser.email);
