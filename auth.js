@@ -28,8 +28,14 @@ export function initAuthPage() {
     const authEmail = document.getElementById('authEmail');
     const authPassword = document.getElementById('authPassword');
     const authMessage = document.getElementById('authMessage');
+    const accessibilityBtn = document.getElementById('accessibilityBtn');
 
     if (!loginBtn || !registerBtn || !authEmail || !authPassword || !authMessage) return;
+
+    // Обработчик кнопки версии для слабовидящих
+    accessibilityBtn?.addEventListener('click', () => {
+        document.body.classList.toggle('accessibility-mode');
+    });
 
     const showAuthMessage = (text, isError = false) => {
         authMessage.textContent = text;

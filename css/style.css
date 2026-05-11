@@ -1024,7 +1024,24 @@ body.accessibility-mode .greeting,
 body.accessibility-mode .home-screen h2,
 body.accessibility-mode .home-screen p,
 body.accessibility-mode .profile-link,
-body.accessibility-mode .back-link {
+body.accessibility-mode .back-link,
+body.accessibility-mode .game-header,
+body.accessibility-mode .score-badge,
+body.accessibility-mode .drawer-title,
+body.accessibility-mode .tool-label,
+body.accessibility-mode .brush-size-value,
+body.accessibility-mode .bonus-info,
+body.accessibility-mode .bonus-title,
+body.accessibility-mode .bonus-item,
+body.accessibility-mode .bonus-email,
+body.accessibility-mode .stat-label,
+body.accessibility-mode .profile-email,
+body.accessibility-mode .rank-title,
+body.accessibility-mode .message {
+    color: #ffffff !important;
+}
+
+body.accessibility-mode .input-group label {
     color: #ffffff !important;
 }
 
@@ -1068,4 +1085,108 @@ body.accessibility-mode .profile-link:hover,
 body.accessibility-mode .back-link:hover {
     background: #ffff00 !important;
     color: #000000 !important;
+}
+
+body.accessibility-mode .input-group input,
+body.accessibility-mode .answer-input {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+    font-size: 1.1rem !important;
+}
+
+body.accessibility-mode .input-group input:focus,
+body.accessibility-mode .answer-input:focus {
+    border-color: #ffff00 !important;
+    outline: none;
+}
+
+body.accessibility-mode .btn-outline {
+    background: transparent !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .btn-outline:hover {
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+
+body.accessibility-mode .btn-skip {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .btn-skip:hover {
+    background: #ffff00 !important;
+    color: #000000 !important;
+}
+
+body.accessibility-mode .btn-drawer,
+body.accessibility-mode .tool-btn,
+body.accessibility-mode .action-btn,
+body.accessibility-mode .clear-btn {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .btn-drawer:hover,
+body.accessibility-mode .tool-btn:hover,
+body.accessibility-mode .action-btn:hover,
+body.accessibility-mode .clear-btn:hover {
+    background: #ffff00 !important;
+    color: #000000 !important;
+}
+
+body.accessibility-mode .drawer-panel {
+    background: #000000 !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .draw-canvas {
+    background: #000000 !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .bonus-info {
+    background: #000000 !important;
+    border: 2px dashed #ffffff !important;
+}
+
+body.accessibility-mode .profile-card {
+    background: #000000 !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .logout-btn {
+    background: #000000 !important;
+    color: #ffffff !important;
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .logout-btn:hover {
+    background: #ffff00 !important;
+    color: #000000 !important;
+}
+
+body.accessibility-mode .stat-value {
+    color: #ffffff !important;
+}
+
+body.accessibility-mode .color-btn {
+    border: 2px solid #ffffff !important;
+}
+
+body.accessibility-mode .brush-size-slider {
+    background: #ffffff !important;
+}
+
+body.accessibility-mode .drawer-close {
+    color: #ffffff !important;
+}
+
+body.accessibility-mode .drawer-close:hover {
+    color: #ffff00 !important;
 }
