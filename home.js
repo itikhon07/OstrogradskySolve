@@ -28,9 +28,9 @@ export async function initHomePage() {
     const greetingEl = document.getElementById('greeting');
     if (greetingEl) {
         if (currentUser) {
-            greetingEl.textContent = `Привет, ${currentUser.email.split('@')[0]}!`;
+            greetingEl.textContent = `${currentUser.email.split('@')[0]}`;
         } else if (email) {
-            greetingEl.textContent = `Привет, ${email.split('@')[0]}!`;
+            greetingEl.textContent = `${email.split('@')[0]}`;
         } else {
             // Если пользователь не авторизован, перенаправляем на страницу входа
             window.location.href = 'auth.html';
